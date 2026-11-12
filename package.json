@@ -1,0 +1,52 @@
+{
+  "name": "openqbank-connector",
+  "private": true,
+  "version": "14.0.0",
+  "description": "Stop drowning in 30,000 generic, bloated Anki(ng) cards. Whether you're generating custom cards or applying Dr. Rahul Damania's high-yield HyGuru methodology, openQbank embeds directly into your question bank to turn the exact concepts you miss into personalized, targeted, high-yield cards that actually stick.\n\nHOW IT WORKS\n1. Practice Your Usual QBank: Work through questions on your preferred platform.\n2. Generate on Demand: Click a single button to generate high-yield learning content.\n3. Master on Your Schedule: Study your personalized cards whenever you review, directly with spaced repetition or on your openQbank page.\n\nCHOOSE YOUR STUDY WORKFLOW\nopenHyGuru (Dr. Rahul Damania's Method)\nBuilt for students who want expert-guided, integrative clinical reasoning, with cards backed by Dr. Damania's expert teachings:\n• Clinical Lead-in Questions: Reveal multi-step, board-style lead-in questions designed to train how you think through complex vignettes.\n• Expert Video Integration: Instantly connect flagged concepts to Dr. Rahul Damania's high-yield integrative teaching.\n• Dedicated Study Passes: Seamless access across Chrome, desktop, and web with simple one-time access—zero recurring monthly subscriptions.\n\nopenQbank (AI Tutor & Active Recall Engine)\nBuilt for students who want custom, highly tailored remediation:\n• Intentional Flashcard Creation: Generate targeted basic or cloze flashcards with one click. Review generated cards on screen, then add them intentionally to your library.\n• Instant Smart Spaced Repetition: One click feeds high-yield cards directly into our custom review algorithm. No confusing scheduling configs or manual deck management. Pure active recall, ready when you are.\n• 100% Free Text Cards: Create custom cards and diagnosis-focused pearls on the fly without breaking your review flow.\n• Secure and Private Clinical AI: Access distractor breakdowns, mechanism explanations, and Socratic clinical guidance grounded in peer-reviewed literature inside the openQbank desktop app.\n\nWHAT'S NEW IN v13\n• TrueLearn support for openHyGuru and openQbank users\n• speed enhancements",
+  "homepage": "https://openqbank.com",
+  "author": "openMedEd LLC",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "sync:version": "node scripts/sync-version.mjs",
+    "build:web": "npm run sync:version && tsc -b && vite build && vite build --config vite.config.content.ts && vite build --config vite.config.selection.ts",
+    "safari": "npm run build:web && node scripts/safari-convert.mjs",
+    "build:safari": "npm run sync:version && node scripts/sync-safari.mjs",
+    "build": "npm run build:web && npm run build:safari && npm run pack",
+    "pack": "node scripts/pack-extension.mjs && node scripts/pack-safari-dmg.mjs",
+    "pack:dmg": "node scripts/pack-safari-dmg.mjs",
+    "publish:cws": "node scripts/publish-cws.mjs",
+    "publish:release": "bash scripts/publish.sh",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "lucide-react": "^0.564.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/chrome": "^0.1.36",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.24",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.3.1",
+    "terser": "^5.44.0",
+    "vitest": "^3.2.4"
+  }
+}

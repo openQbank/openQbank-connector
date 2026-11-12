@@ -1,0 +1,106 @@
+{
+    "manifest_version": 3,
+    "name": "openQbank Connector",
+    "version": "14.0.0",
+    "description": "Turn missed practice questions into targeted flashcards in one click. Master high-yield concepts with openQbank.",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "contextMenus",
+        "scripting"
+    ],
+    "icons": {
+        "128": "logo.png"
+    },
+    "host_permissions": [
+        "https://openqbank-api.fly.dev/*",
+        "https://api.openai.com/*",
+        "*://*.openqbank.com/*",
+        "*://*.starttest.com/*",
+        "*://uworld.com/*",
+        "*://*.uworld.com/*",
+        "*://amboss.com/*",
+        "*://*.amboss.com/*",
+        "*://truelearn.com/*",
+        "*://*.truelearn.com/*",
+        "*://blueprintprep.com/*",
+        "*://*.blueprintprep.com/*",
+        "*://app.roshreview.com/*",
+        "*://*.roshreview.com/*",
+        "*://usmlefighter.com/*",
+        "*://*.usmlefighter.com/*",
+        "*://brivona.github.io/*",
+        "http://localhost:5000/*"
+    ],
+    "action": {
+        "default_title": "openQbank Connector",
+        "default_icon": "logo.png",
+        "default_popup": "index.html"
+    },
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.openqbank.com/*",
+                "*://*.starttest.com/*",
+                "*://uworld.com/*",
+                "*://*.uworld.com/*",
+                "*://amboss.com/*",
+                "*://*.amboss.com/*",
+                "*://truelearn.com/*",
+                "*://*.truelearn.com/*",
+                "*://blueprintprep.com/*",
+                "*://*.blueprintprep.com/*",
+                "*://app.roshreview.com/*",
+                "*://*.roshreview.com/*",
+                "*://usmlefighter.com/*",
+                "*://*.usmlefighter.com/*",
+                "*://brivona.github.io/*",
+                "http://localhost:5000/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_end",
+            "all_frames": true
+        },
+        {
+            "matches": [
+                "*://*.openqbank.com/*",
+                "*://*.starttest.com/*",
+                "*://uworld.com/*",
+                "*://*.uworld.com/*",
+                "*://amboss.com/*",
+                "*://*.amboss.com/*",
+                "*://truelearn.com/*",
+                "*://*.truelearn.com/*",
+                "*://blueprintprep.com/*",
+                "*://*.blueprintprep.com/*",
+                "*://app.roshreview.com/*",
+                "*://*.roshreview.com/*",
+                "*://usmlefighter.com/*",
+                "*://*.usmlefighter.com/*",
+                "*://brivona.github.io/*",
+                "http://localhost:5000/*"
+            ],
+            "js": [
+                "selection.js"
+            ],
+            "run_at": "document_idle",
+            "all_frames": true
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "logo.png"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}

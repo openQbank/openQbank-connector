@@ -1,0 +1,45 @@
+.pycache/* 
+
+# self
+misc/*
+misc/**/*.app
+misc/**/*.xcodeproj
+misc/**/*.xcodeproj/**
+misc/**/*.xcodeworkspace
+misc/**/*.xcodeworkspace/**
+misc/**/xcuserdata/
+misc/**/*.xcuserstate
+.xcode-derived-data/
+dist-safari-macos/
+safari-build/
+openQbank Connector/**/*.xcuserstate
+openQbank Connector/**/xcuserdata/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+.env.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

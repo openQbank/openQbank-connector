@@ -1,0 +1,105 @@
+name: Publish Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Extension version (for example, 13.3.4)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Chrome package
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TAG_VERSION: ${{ github.ref_name }}
+        run: |
+          version="$INPUT_VERSION"
+          if [ -z "$version" ]; then
+            version="${TAG_VERSION#v}"
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid semver: $version" >&2
+            exit 1
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install private extractors
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.EXTRACT_PACKAGE_TOKEN }}
+        run: |
+          npm install --no-save @openqbank/extract@^1 || npm install --no-save "file:../qbank-extract"
+          test -f node_modules/@openqbank/extract/src/index.ts || test -f node_modules/@openqbank/extract/src/impl.ts
+
+      - name: Build and test
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          npm run build:web
+          npm run lint
+          npm test
+
+      - name: Package Chrome extension
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: node scripts/pack-extension.mjs
+
+      - name: Upload Chrome package
+        uses: actions/upload-artifact@v4
+        with:
+          name: openQbank-connector-v${{ steps.version.outputs.value }}
+          path: ~/Downloads/openQbank-connector-v${{ steps.version.outputs.value }}.zip
+          if-no-files-found: error
+
+  upload:
+    name: Upload to Chrome Web Store
+    needs: build
+    runs-on: ubuntu-latest
+    environment: chrome-web-store
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download Chrome package
+        uses: actions/download-artifact@v4
+        with:
+          name: openQbank-connector-v${{ needs.build.outputs.version }}
+          path: release
+
+      - name: Upload package without review submission
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: node scripts/publish-cws.mjs "release/openQbank-connector-v${{ needs.build.outputs.version }}.zip" --upload-only
