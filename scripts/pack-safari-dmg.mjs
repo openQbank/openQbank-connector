@@ -170,7 +170,7 @@ if (hasKeychainProfile || hasApiKey) {
     `  To configure Apple notarization, run once in your terminal:\n` +
     `    xcrun notarytool store-credentials "${keychainProfile}" \\\n` +
     `      --apple-id "your-apple-id@email.com" \\\n` +
-    `      --team-id "YX9F55Z3Q8" \\\n` +
+    `      --team-id "${process.env.APPLE_TEAM_ID || 'YOUR_TEAM_ID'}" \\\n` +
     `      --password "xxxx-xxxx-xxxx-xxxx"\n` +
     `  Then rerun npm run build.`
   );
