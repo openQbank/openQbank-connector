@@ -21,8 +21,13 @@ if (!fs.existsSync(appBundle)) {
   if (fs.existsSync(fallback)) {
     appBundle = fallback;
   } else {
-    console.error(`[safari-dmg] Error: Safari app bundle not found at ${appBundle}. Run 'npm run build:safari' first.`);
-    process.exit(1);
+    console.warn(
+      `[safari-dmg] Safari app bundle not found at ${appBundle}; skipping DMG. Run 'npm run build:safari' after installing Xcode.`,
+    );
+    if (process.env.REQUIRE_SAFARI === "true") {
+      process.exit(1);
+    }
+    process.exit(0);
   }
 }
 

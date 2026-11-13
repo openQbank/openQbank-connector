@@ -83,9 +83,13 @@ if (fs.existsSync(DESKTOP_ICONSET_DIR) && fs.existsSync(APPICON_DIR)) {
 // 4. Build Safari extension app via xcodebuild on macOS
 if (process.platform === 'darwin') {
   try {
-    execSync('which xcodebuild', { stdio: 'ignore' });
+    execSync('xcodebuild -version', { stdio: 'ignore' });
   } catch {
-    console.log('[safari-sync] xcodebuild not found; skipping Safari compilation.');
+    console.warn(
+      '[safari-sync] Full Xcode is required for Safari builds; skipping Safari compilation.\n' +
+      '  Install Xcode from the App Store, then run:\n' +
+      '    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer',
+    );
     process.exit(0);
   }
 

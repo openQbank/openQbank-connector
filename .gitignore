@@ -14,6 +14,10 @@ dist-safari-macos/
 safari-build/
 openQbank Connector/**/*.xcuserstate
 openQbank Connector/**/xcuserdata/
+safari/**/xcuserdata/
+safari/**/*.xcuserstate
+safari/dist/
+safari/dist_dmg/
 
 # Logs
 logs

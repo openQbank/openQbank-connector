@@ -1,0 +1,611 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		50B8C4F230713040001F06A5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B8C4F130713040001F06A5 /* AppDelegate.swift */; };
+		50B8C4F630713040001F06A5 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C4F430713040001F06A5 /* Main.html */; };
+		50B8C4F830713040001F06A5 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C4F730713040001F06A5 /* Icon.png */; };
+		50B8C4FA30713040001F06A5 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C4F930713040001F06A5 /* Style.css */; };
+		50B8C4FC30713040001F06A5 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C4FB30713040001F06A5 /* Script.js */; };
+		50B8C4FE30713040001F06A5 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B8C4FD30713040001F06A5 /* ViewController.swift */; };
+		50B8C50130713040001F06A5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C4FF30713040001F06A5 /* Main.storyboard */; };
+		50B8C50330713041001F06A5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C50230713041001F06A5 /* Assets.xcassets */; };
+		50B8C50A30713041001F06A5 /* openQbank Connector Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 50B8C50930713041001F06A5 /* openQbank Connector Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		50B8C50F30713041001F06A5 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B8C50E30713041001F06A5 /* SafariWebExtensionHandler.swift */; };
+		50B8C52630713041001F06A5 /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C51B30713041001F06A5 /* popup.js */; };
+		50B8C52730713041001F06A5 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C51C30713041001F06A5 /* index.html */; };
+		50B8C52830713041001F06A5 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C51D30713041001F06A5 /* background.js */; };
+		50B8C52B30713041001F06A5 /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C52030713041001F06A5 /* logo.png */; };
+		50B8C52C30713041001F06A5 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C52130713041001F06A5 /* manifest.json */; };
+		50B8C52D30713041001F06A5 /* popup.css in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C52230713041001F06A5 /* popup.css */; };
+		50B8C52E30713041001F06A5 /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C52330713041001F06A5 /* content.js */; };
+		50B8C53130713041001F06A5 /* selection.js in Resources */ = {isa = PBXBuildFile; fileRef = 50B8C53230713041001F06A5 /* selection.js */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		50B8C50B30713041001F06A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 50B8C4E630713040001F06A5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 50B8C50830713041001F06A5;
+			remoteInfo = "openQbank Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		50B8C51630713041001F06A5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				50B8C50A30713041001F06A5 /* openQbank Connector Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		50B8C4EE30713040001F06A5 /* openQbank Connector-connector.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "openQbank Connector-connector.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		50B8C4F130713040001F06A5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		50B8C4F530713040001F06A5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		50B8C4F730713040001F06A5 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		50B8C4F930713040001F06A5 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		50B8C4FB30713040001F06A5 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		50B8C4FD30713040001F06A5 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		50B8C50030713040001F06A5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		50B8C50230713041001F06A5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		50B8C50430713041001F06A5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		50B8C50930713041001F06A5 /* openQbank Connector Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "openQbank Connector Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		50B8C50E30713041001F06A5 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		50B8C51030713041001F06A5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		50B8C51B30713041001F06A5 /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../dist/popup.js; sourceTree = "<group>"; };
+		50B8C51C30713041001F06A5 /* index.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = index.html; path = ../../../dist/index.html; sourceTree = "<group>"; };
+		50B8C51D30713041001F06A5 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = ../../../dist/background.js; sourceTree = "<group>"; };
+		50B8C52030713041001F06A5 /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = logo.png; path = ../../../dist/logo.png; sourceTree = "<group>"; };
+		50B8C52130713041001F06A5 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../dist/manifest.json; sourceTree = "<group>"; };
+		50B8C52230713041001F06A5 /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = popup.css; path = ../../../dist/popup.css; sourceTree = "<group>"; };
+		50B8C52330713041001F06A5 /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../../dist/content.js; sourceTree = "<group>"; };
+		50B8C53230713041001F06A5 /* selection.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = selection.js; path = ../../../dist/selection.js; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		50B8C4EB30713040001F06A5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		50B8C50630713041001F06A5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		50B8C4E530713040001F06A5 = {
+			isa = PBXGroup;
+			children = (
+				50B8C4F030713040001F06A5 /* openQbank */,
+				50B8C50D30713041001F06A5 /* openQbank Extension */,
+				50B8C4EF30713040001F06A5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		50B8C4EF30713040001F06A5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				50B8C4EE30713040001F06A5 /* openQbank Connector-connector.app */,
+				50B8C50930713041001F06A5 /* openQbank Connector Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		50B8C4F030713040001F06A5 /* openQbank */ = {
+			isa = PBXGroup;
+			children = (
+				50B8C4F130713040001F06A5 /* AppDelegate.swift */,
+				50B8C4FD30713040001F06A5 /* ViewController.swift */,
+				50B8C4FF30713040001F06A5 /* Main.storyboard */,
+				50B8C50230713041001F06A5 /* Assets.xcassets */,
+				50B8C50430713041001F06A5 /* Info.plist */,
+				50B8C4F330713040001F06A5 /* Resources */,
+			);
+			path = openQbank;
+			sourceTree = "<group>";
+		};
+		50B8C4F330713040001F06A5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				50B8C4F430713040001F06A5 /* Main.html */,
+				50B8C4F730713040001F06A5 /* Icon.png */,
+				50B8C4F930713040001F06A5 /* Style.css */,
+				50B8C4FB30713040001F06A5 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		50B8C50D30713041001F06A5 /* openQbank Extension */ = {
+			isa = PBXGroup;
+			children = (
+				50B8C51A30713041001F06A5 /* Resources */,
+				50B8C50E30713041001F06A5 /* SafariWebExtensionHandler.swift */,
+				50B8C51030713041001F06A5 /* Info.plist */,
+			);
+			path = "openQbank Extension";
+			sourceTree = "<group>";
+		};
+		50B8C51A30713041001F06A5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				50B8C51B30713041001F06A5 /* popup.js */,
+				50B8C51C30713041001F06A5 /* index.html */,
+				50B8C51D30713041001F06A5 /* background.js */,
+				50B8C52030713041001F06A5 /* logo.png */,
+				50B8C52130713041001F06A5 /* manifest.json */,
+				50B8C52230713041001F06A5 /* popup.css */,
+				50B8C52330713041001F06A5 /* content.js */,
+				50B8C53230713041001F06A5 /* selection.js */,
+			);
+			name = Resources;
+			path = "openQbank Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		50B8C4ED30713040001F06A5 /* openQbank Connector */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 50B8C51730713041001F06A5 /* Build configuration list for PBXNativeTarget "openQbank Connector" */;
+			buildPhases = (
+				50B8C4EA30713040001F06A5 /* Sources */,
+				50B8C4EB30713040001F06A5 /* Frameworks */,
+				50B8C4EC30713040001F06A5 /* Resources */,
+				50B8C51630713041001F06A5 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				50B8C50C30713041001F06A5 /* PBXTargetDependency */,
+			);
+			name = "openQbank Connector";
+			productName = openQbank;
+			productReference = 50B8C4EE30713040001F06A5 /* openQbank Connector-connector.app */;
+			productType = "com.apple.product-type.application";
+		};
+		50B8C50830713041001F06A5 /* openQbank Connector Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 50B8C51330713041001F06A5 /* Build configuration list for PBXNativeTarget "openQbank Connector Extension" */;
+			buildPhases = (
+				50B8C50530713041001F06A5 /* Sources */,
+				50B8C50630713041001F06A5 /* Frameworks */,
+				50B8C50730713041001F06A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			name = "openQbank Connector Extension";
+			productName = "openQbank Extension";
+			productReference = 50B8C50930713041001F06A5 /* openQbank Connector Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		50B8C4E630713040001F06A5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					50B8C4ED30713040001F06A5 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					50B8C50830713041001F06A5 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = 50B8C4E930713040001F06A5 /* Build configuration list for PBXProject "openQbank Connector" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 50B8C4E530713040001F06A5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 50B8C4EF30713040001F06A5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				50B8C4ED30713040001F06A5 /* openQbank Connector */,
+				50B8C50830713041001F06A5 /* openQbank Connector Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		50B8C4EC30713040001F06A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				50B8C4F830713040001F06A5 /* Icon.png in Resources */,
+				50B8C50130713040001F06A5 /* Main.storyboard in Resources */,
+				50B8C4FC30713040001F06A5 /* Script.js in Resources */,
+				50B8C4F630713040001F06A5 /* Main.html in Resources */,
+				50B8C50330713041001F06A5 /* Assets.xcassets in Resources */,
+				50B8C4FA30713040001F06A5 /* Style.css in Resources */,
+			);
+		};
+		50B8C50730713041001F06A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+				50B8C52630713041001F06A5 /* popup.js in Resources */,
+				50B8C52C30713041001F06A5 /* manifest.json in Resources */,
+				50B8C52830713041001F06A5 /* background.js in Resources */,
+				50B8C52B30713041001F06A5 /* logo.png in Resources */,
+				50B8C52D30713041001F06A5 /* popup.css in Resources */,
+				50B8C52E30713041001F06A5 /* content.js in Resources */,
+				50B8C52730713041001F06A5 /* index.html in Resources */,
+				50B8C53130713041001F06A5 /* selection.js in Resources */,
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		50B8C4EA30713040001F06A5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				50B8C4FE30713040001F06A5 /* ViewController.swift in Sources */,
+				50B8C4F230713040001F06A5 /* AppDelegate.swift in Sources */,
+			);
+		};
+		50B8C50530713041001F06A5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				50B8C50F30713041001F06A5 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		50B8C50C30713041001F06A5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 50B8C50830713041001F06A5 /* openQbank Connector Extension */;
+			targetProxy = 50B8C50B30713041001F06A5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		50B8C4F430713040001F06A5 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				50B8C4F530713040001F06A5 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		50B8C4FF30713040001F06A5 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				50B8C50030713040001F06A5 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		50B8C51130713041001F06A5 /* Debug configuration for PBXProject "openQbank Connector" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		50B8C51230713041001F06A5 /* Release configuration for PBXProject "openQbank Connector" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		50B8C51430713041001F06A5 /* Debug configuration for PBXNativeTarget "openQbank Connector Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14.0.0;
+				DEVELOPMENT_TEAM = YX9F55Z3Q8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "openQbank Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "openQbank Connector";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 14.0.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.openMedEd.openqbank-connector.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		50B8C51530713041001F06A5 /* Release configuration for PBXNativeTarget "openQbank Connector Extension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 14.0.0;
+				DEVELOPMENT_TEAM = YX9F55Z3Q8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "openQbank Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "openQbank Connector";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 14.0.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.openMedEd.openqbank-connector.Extension";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		50B8C51830713041001F06A5 /* Debug configuration for PBXNativeTarget "openQbank Connector" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14.0.0;
+				DEVELOPMENT_TEAM = YX9F55Z3Q8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = openQbank/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "openQbank Connector";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 14.0.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.openMedEd.openqbank-connector";
+				PRODUCT_NAME = "openQbank Connector";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		50B8C51930713041001F06A5 /* Release configuration for PBXNativeTarget "openQbank Connector" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 14.0.0;
+				DEVELOPMENT_TEAM = YX9F55Z3Q8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = openQbank/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "openQbank Connector";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				INFOPLIST_KEY_NSViewGestureRecognizerIsExclusive = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 14.0.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.openMedEd.openqbank-connector";
+				PRODUCT_NAME = "openQbank Connector";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		50B8C4E930713040001F06A5 /* Build configuration list for PBXProject "openQbank Connector" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50B8C51130713041001F06A5 /* Debug configuration for PBXProject "openQbank Connector" */,
+				50B8C51230713041001F06A5 /* Release configuration for PBXProject "openQbank Connector" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		50B8C51330713041001F06A5 /* Build configuration list for PBXNativeTarget "openQbank Connector Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50B8C51430713041001F06A5 /* Debug configuration for PBXNativeTarget "openQbank Connector Extension" */,
+				50B8C51530713041001F06A5 /* Release configuration for PBXNativeTarget "openQbank Connector Extension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		50B8C51730713041001F06A5 /* Build configuration list for PBXNativeTarget "openQbank Connector" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50B8C51830713041001F06A5 /* Debug configuration for PBXNativeTarget "openQbank Connector" */,
+				50B8C51930713041001F06A5 /* Release configuration for PBXNativeTarget "openQbank Connector" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 50B8C4E630713040001F06A5 /* Project object */;
+	validationLevel = 1;
+}
