@@ -211,7 +211,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                         type: 'byok_generate',
                         selection,
                         grounding,
-                    }) as { ok?: boolean; error?: string; card?: { card_type: 'basic' | 'cloze'; front: string; back: string } };
+                    }) as { ok?: boolean; error?: string; card?: { card_type: 'cloze'; front: string; back: string; notes?: string } };
                     if (!byok?.ok || !byok.card) {
                         setStatus(byok?.error || 'OpenAI generation failed.');
                         genBtn.disabled = false;
@@ -220,11 +220,11 @@ export const openSelectionPanel = (selectionText: string): void => {
                     close();
                     window.removeEventListener('keydown', onKey, true);
                     const opts = fabOptions ?? buildFabOptions(status);
-                    openCustomCardModal(opts, {
-                        cardType: byok.card.card_type,
+                    await openCustomCardModal(opts, {
+                        cardType: 'cloze',
                         front: byok.card.front,
-                        back: byok.card.back,
-                        notes: grounding || undefined,
+                        back: '',
+                        notes: byok.card.notes || grounding || undefined,
                     });
                 } catch (err) {
                     setStatus(err instanceof Error ? err.message : 'Request failed.');

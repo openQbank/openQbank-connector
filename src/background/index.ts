@@ -309,7 +309,13 @@ const handleByokGenerate = async (selection: string, grounding: string) => {
         if (!content) {
             return { ok: false, error: 'OpenAI returned an empty response.' };
         }
-        const card = JSON.parse(content) as { card_type: 'basic' | 'cloze'; front: string; back: string };
+        const parsed = JSON.parse(content) as { cloze: string; notes?: string };
+        const card = {
+            card_type: 'cloze' as const,
+            front: (parsed.cloze || '').trim(),
+            back: '',
+            notes: (parsed.notes || '').trim(),
+        };
         return { ok: true, card };
     } catch (error) {
         return {

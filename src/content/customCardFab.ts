@@ -98,7 +98,6 @@ let isModalOpen = false;
 let currentCardType: 'cloze' | 'basic' | 'image' | 'sequential' = 'cloze';
 let isSubmitting = false;
 let setCardTypeRef: ((type: 'cloze' | 'basic' | 'image' | 'sequential') => void) | null = null;
-let toggleModalRef: ((open?: boolean) => void) | null = null;
 let lastQuestionId = '';
 let currentImageDataUrl: string | null = null;
 let currentFrontImageDataUrl: string | null = null;
@@ -629,6 +628,86 @@ const syncMediaProState = (root: HTMLElement, options: CustomCardFabOptions) => 
   }
 };
 
+const applyCardTypeDom = (
+  root: HTMLElement,
+  type: 'cloze' | 'basic' | 'image' | 'sequential',
+  isPro: boolean = false,
+) => {
+  currentCardType = type;
+  const typeClozeBtn = root.querySelector<HTMLButtonElement>('#ocb-type-cloze');
+  const typeBasicBtn = root.querySelector<HTMLButtonElement>('#ocb-type-basic');
+  const typeImageBtn = root.querySelector<HTMLButtonElement>('#ocb-type-image');
+  const typeSequentialBtn = root.querySelector<HTMLButtonElement>('#ocb-type-sequential');
+  const sequentialGroup = root.querySelector<HTMLElement>('#ocb-sequential-group');
+  const frontTextGroup = root.querySelector<HTMLElement>('#ocb-front-text-group');
+  const frontImageGroup = root.querySelector<HTMLElement>('#ocb-front-image-group');
+  const frontLabel = root.querySelector<HTMLElement>('#ocb-front-label');
+  const frontHint = root.querySelector<HTMLElement>('#ocb-front-hint');
+  const frontInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-front');
+  const backGroup = root.querySelector<HTMLElement>('#ocb-back-group');
+  const mediaLabelText = root.querySelector<HTMLElement>('#ocb-media-label-text');
+  const statusMsg = root.querySelector<HTMLElement>('#ocb-status-message');
+
+  typeClozeBtn?.classList.toggle('ocb-segment-active', type === 'cloze');
+  typeBasicBtn?.classList.toggle('ocb-segment-active', type === 'basic');
+  typeImageBtn?.classList.toggle('ocb-segment-active', type === 'image');
+  typeSequentialBtn?.classList.toggle('ocb-segment-active', type === 'sequential');
+
+  if (sequentialGroup && type !== 'sequential') sequentialGroup.style.display = 'none';
+
+  if (type === 'cloze') {
+    if (frontTextGroup) frontTextGroup.style.display = 'block';
+    if (frontImageGroup) frontImageGroup.style.display = 'none';
+    if (frontLabel) frontLabel.textContent = 'Cloze Text';
+    if (frontHint) frontHint.style.display = 'inline';
+    if (frontInput) {
+      frontInput.placeholder = 'e.g. {{c1::Atorvastatin}} is a HMG-CoA reductase inhibitor.';
+    }
+    if (backGroup) backGroup.style.display = 'none';
+    if (mediaLabelText) mediaLabelText.textContent = 'Media';
+    if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
+      statusMsg.style.display = 'none';
+    }
+  } else if (type === 'sequential') {
+    if (frontTextGroup) frontTextGroup.style.display = 'block';
+    if (frontImageGroup) frontImageGroup.style.display = 'none';
+    if (frontLabel) frontLabel.textContent = 'Vignette / Prompt';
+    if (frontHint) {
+      frontHint.style.display = 'inline';
+      frontHint.textContent = 'Clinical stem shown before steps reveal';
+    }
+    if (frontInput) frontInput.placeholder = 'e.g. 55-year-old man with chest pain radiating to the back...';
+    if (backGroup) backGroup.style.display = 'none';
+    if (sequentialGroup) sequentialGroup.style.display = 'block';
+    if (!root.querySelector('#ocb-sequential-steps .ocb-seq-row')) {
+      renderOcbSequentialSteps(root, []);
+    }
+    if (mediaLabelText) mediaLabelText.textContent = 'Media';
+  } else if (type === 'basic') {
+    if (frontTextGroup) frontTextGroup.style.display = 'block';
+    if (frontImageGroup) frontImageGroup.style.display = 'none';
+    if (frontLabel) frontLabel.textContent = 'Front (Question)';
+    if (frontHint) frontHint.style.display = 'none';
+    if (frontInput) frontInput.placeholder = 'e.g. Mechanism of action of Atorvastatin?';
+    if (backGroup) backGroup.style.display = 'block';
+    if (mediaLabelText) mediaLabelText.textContent = 'Media';
+    if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
+      statusMsg.style.display = 'none';
+    }
+  } else {
+    // type === 'image'
+    if (frontTextGroup) frontTextGroup.style.display = 'none';
+    if (frontImageGroup) frontImageGroup.style.display = 'block';
+    if (backGroup) backGroup.style.display = 'block';
+    if (mediaLabelText) mediaLabelText.textContent = 'Explanation Media';
+    if (!isPro) {
+      showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+    } else if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
+      statusMsg.style.display = 'none';
+    }
+  }
+};
+
 const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   const fabBtn = root.querySelector<HTMLButtonElement>('#ocb-fab-btn');
   const modal = root.querySelector<HTMLElement>('#ocb-card-modal');
@@ -639,23 +718,16 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   const typeBasicBtn = root.querySelector<HTMLButtonElement>('#ocb-type-basic');
   const typeImageBtn = root.querySelector<HTMLButtonElement>('#ocb-type-image');
   const typeSequentialBtn = root.querySelector<HTMLButtonElement>('#ocb-type-sequential');
-  const sequentialGroup = root.querySelector<HTMLElement>('#ocb-sequential-group');
   const sequentialAddBtn = root.querySelector<HTMLButtonElement>('#ocb-sequential-add-field');
 
-  const frontTextGroup = root.querySelector<HTMLElement>('#ocb-front-text-group');
-  const frontImageGroup = root.querySelector<HTMLElement>('#ocb-front-image-group');
-  const frontLabel = root.querySelector<HTMLElement>('#ocb-front-label');
-  const frontHint = root.querySelector<HTMLElement>('#ocb-front-hint');
   const frontInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-front');
   const frontDropzone = root.querySelector<HTMLElement>('#ocb-front-image-dropzone');
   const frontFileInput = root.querySelector<HTMLInputElement>('#ocb-front-image-file-input');
   const frontRemoveBtn = root.querySelector<HTMLButtonElement>('#ocb-front-image-btn-remove');
   const frontCaptionInput = root.querySelector<HTMLInputElement>('#ocb-front-image-caption');
 
-  const backGroup = root.querySelector<HTMLElement>('#ocb-back-group');
   const backInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-back');
   const notesInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-notes');
-  const mediaLabelText = root.querySelector<HTMLElement>('#ocb-media-label-text');
   const systemSelect = root.querySelector<HTMLSelectElement>('#ocb-select-system');
   const subjectInput = root.querySelector<HTMLInputElement>('#ocb-input-subject');
   const topicInput = root.querySelector<HTMLInputElement>('#ocb-input-topic');
@@ -663,66 +735,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
 
   // Switch between Cloze, Basic, and Image
   const setCardType = (type: 'cloze' | 'basic' | 'image' | 'sequential') => {
-    currentCardType = type;
-    typeClozeBtn?.classList.toggle('ocb-segment-active', type === 'cloze');
-    typeBasicBtn?.classList.toggle('ocb-segment-active', type === 'basic');
-    typeImageBtn?.classList.toggle('ocb-segment-active', type === 'image');
-    typeSequentialBtn?.classList.toggle('ocb-segment-active', type === 'sequential');
-
-    if (sequentialGroup && type !== 'sequential') sequentialGroup.style.display = 'none';
-
-    if (type === 'cloze') {
-      if (frontTextGroup) frontTextGroup.style.display = 'block';
-      if (frontImageGroup) frontImageGroup.style.display = 'none';
-      if (frontLabel) frontLabel.textContent = 'Cloze Text';
-      if (frontHint) frontHint.style.display = 'inline';
-      if (frontInput) {
-        frontInput.placeholder = 'e.g. {{c1::Atorvastatin}} is a HMG-CoA reductase inhibitor.';
-      }
-      if (backGroup) backGroup.style.display = 'none';
-      if (mediaLabelText) mediaLabelText.textContent = 'Media';
-      if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
-        statusMsg.style.display = 'none';
-      }
-    } else if (type === 'sequential') {
-      if (frontTextGroup) frontTextGroup.style.display = 'block';
-      if (frontImageGroup) frontImageGroup.style.display = 'none';
-      if (frontLabel) frontLabel.textContent = 'Vignette / Prompt';
-      if (frontHint) {
-        frontHint.style.display = 'inline';
-        frontHint.textContent = 'Clinical stem shown before steps reveal';
-      }
-      if (frontInput) frontInput.placeholder = 'e.g. 55-year-old man with chest pain radiating to the back...';
-      if (backGroup) backGroup.style.display = 'none';
-      if (sequentialGroup) sequentialGroup.style.display = 'block';
-      if (!root.querySelector('#ocb-sequential-steps .ocb-seq-row')) {
-        renderOcbSequentialSteps(root, []);
-      }
-      if (mediaLabelText) mediaLabelText.textContent = 'Media';
-    } else if (type === 'basic') {
-      if (frontTextGroup) frontTextGroup.style.display = 'block';
-      if (frontImageGroup) frontImageGroup.style.display = 'none';
-      if (frontLabel) frontLabel.textContent = 'Front (Question)';
-      if (frontHint) frontHint.style.display = 'none';
-      if (frontInput) frontInput.placeholder = 'e.g. Mechanism of action of Atorvastatin?';
-      if (backGroup) backGroup.style.display = 'block';
-      if (mediaLabelText) mediaLabelText.textContent = 'Media';
-      if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
-        statusMsg.style.display = 'none';
-      }
-    } else {
-      // type === 'image'
-      if (frontTextGroup) frontTextGroup.style.display = 'none';
-      if (frontImageGroup) frontImageGroup.style.display = 'block';
-      if (backGroup) backGroup.style.display = 'block';
-      if (mediaLabelText) mediaLabelText.textContent = 'Explanation Media';
-      if (!options.getStatus().isPro) {
-        showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
-      } else if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
-        statusMsg.style.display = 'none';
-      }
-    }
-
+    applyCardTypeDom(root, type, Boolean(options.getStatus().isPro));
   };
 
   typeClozeBtn?.addEventListener('click', () => setCardType('cloze'));
@@ -741,7 +754,8 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
       removeCustomCardFab();
       return;
     }
-    isModalOpen = typeof open === 'boolean' ? open : !isModalOpen;
+    const isOpenInDom = Boolean(modal?.classList.contains('ocb-modal-open'));
+    isModalOpen = typeof open === 'boolean' ? open : !isOpenInDom;
     if (modal) {
       if (isModalOpen) {
         modal.classList.add('ocb-modal-open');
@@ -762,7 +776,6 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   };
 
   setCardTypeRef = setCardType;
-  toggleModalRef = toggleModal;
 
   const copyBtn = root.querySelector<HTMLButtonElement>('#ocb-btn-copy');
   copyBtn?.addEventListener('click', async () => {
@@ -1969,19 +1982,45 @@ export interface CustomCardPrefill {
   notes?: string;
 }
 
-export const openCustomCardModal = (options: CustomCardFabOptions, prefill: CustomCardPrefill) => {
+export const openCustomCardModal = async (
+  options: CustomCardFabOptions,
+  prefill: CustomCardPrefill,
+) => {
   ensureCustomCardFab(options);
   const root = document.getElementById(FAB_ROOT_ID);
-  const fabBtn = root?.querySelector<HTMLElement>('#ocb-fab-btn');
+  if (!root) return;
+
+  const modal = root.querySelector<HTMLElement>('#ocb-card-modal');
+  const fabBtn = root.querySelector<HTMLElement>('#ocb-fab-btn');
+  const frontInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-front');
+  const backInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-back');
+  const notesInput = root.querySelector<HTMLTextAreaElement>('#ocb-input-notes');
+  const systemSelect = root.querySelector<HTMLSelectElement>('#ocb-select-system');
+  const subjectInput = root.querySelector<HTMLInputElement>('#ocb-input-subject');
+  const topicInput = root.querySelector<HTMLInputElement>('#ocb-input-topic');
+
   if (!options.getFingerprint() && fabBtn) {
     fabBtn.style.display = 'none';
   }
-  const frontInput = root?.querySelector<HTMLTextAreaElement>('#ocb-input-front');
-  const backInput = root?.querySelector<HTMLTextAreaElement>('#ocb-input-back');
-  const notesInput = root?.querySelector<HTMLTextAreaElement>('#ocb-input-notes');
-  setCardTypeRef?.(prefill.cardType);
-  if (frontInput) frontInput.value = prefill.front;
-  if (backInput) backInput.value = prefill.back;
+
+  const isPro = Boolean(options.getStatus().isPro);
+  applyCardTypeDom(root, prefill.cardType || 'cloze', isPro);
+  setCardTypeRef?.(prefill.cardType || 'cloze');
+
+  if (frontInput) frontInput.value = prefill.front || '';
+  if (backInput) backInput.value = prefill.back || '';
   if (notesInput) notesInput.value = prefill.notes || '';
-  toggleModalRef?.(true);
+
+  // Open the modal if collapsed, or maintain open state
+  if (modal) {
+    modal.classList.add('ocb-modal-open');
+    fabBtn?.classList.add('ocb-fab-active');
+    isModalOpen = true;
+  }
+
+  // Always autodetect question metadata (subject, system, topic for UWorld, etc.)
+  await autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
+  syncMediaProState(root, options);
+
+  setTimeout(() => frontInput?.focus(), 120);
 };

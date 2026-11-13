@@ -1533,10 +1533,11 @@ const renderInlineActions = () => {
         inlineActionState.statusResolved &&
         isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier)
     );
+    const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
     const fabShouldShow = Boolean(
         fingerprint?.questionId &&
         isOpenQbank &&
-        inlineActionState.customCardFabEnabled === true
+        (isOpenQbankFreeUser || inlineActionState.customCardFabEnabled === true)
     );
 
     updateCustomCardFabVisibility(fabShouldShow, {
@@ -1629,7 +1630,7 @@ const renderInlineActions = () => {
         const isOpenQbank = isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier);
         const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
         const showCards = isOpenQbank
-            ? (isOpenQbankFreeUser && !hasCardsDisplayed) || shouldShowOpenQbankGenerateButton(
+            ? !isOpenQbankFreeUser && shouldShowOpenQbankGenerateButton(
                 Boolean(inlineActionState.customAnkiEnabled),
                 hasCardsDisplayed,
                 inlineActionState.aiFlashcardsEnabled !== false,
@@ -1638,7 +1639,7 @@ const renderInlineActions = () => {
         if (showCards) {
             cardsButton.hidden = false;
             cardsButton.style.removeProperty('display');
-            cardsButton.disabled = isOpenQbankFreeUser || inlineActionState.cardsPending;
+            cardsButton.disabled = inlineActionState.cardsPending;
             if (inlineActionState.cardsPending) {
                 cardsButton.classList.add('ocb-button--countdown');
                 cardsButton.classList.remove('ocb-button--peach-cta');
@@ -1648,9 +1649,7 @@ const renderInlineActions = () => {
                 cardsButton.classList.remove('ocb-button--countdown');
                 cardsButton.classList.remove('ocb-button--peach-cta');
                 cardsButton.style.removeProperty('--ocb-progress');
-                cardsButton.innerHTML = isOpenQbankFreeUser
-                    ? 'Upgrade to Generate Flashcards'
-                    : `<img src="${getSafeExtensionUrl('logo.png')}" alt="openQbank" style="height: 14px !important; width: 14px !important; max-width: 14px !important; max-height: 14px !important; vertical-align: middle !important; margin: 0 5px 0 0 !important; display: inline-block !important; object-fit: contain !important;" />Generate Flashcard`;
+                cardsButton.innerHTML = `<img src="${getSafeExtensionUrl('logo.png')}" alt="openQbank" style="height: 14px !important; width: 14px !important; max-width: 14px !important; max-height: 14px !important; vertical-align: middle !important; margin: 0 5px 0 0 !important; display: inline-block !important; object-fit: contain !important;" />Generate Flashcard`;
             }
         } else {
             cardsButton.hidden = true;
@@ -1666,7 +1665,7 @@ const renderInlineActions = () => {
             flagButton.hidden = false;
             flagButton.style.setProperty('display', 'inline-flex', 'important');
             flagButton.disabled = inlineActionState.flagPending;
-            flagButton.innerHTML = inlineActionState.flagPending ? 'Adding...' : flagDoneForQuestion ? 'Added to openQbank' : 'Add to openQbank';
+            flagButton.innerHTML = inlineActionState.flagPending ? 'Adding...' : flagDoneForQuestion ? 'Added to Library' : 'Add to Library';
         }
     }
 
@@ -2556,7 +2555,7 @@ const handleInlineFlagQuestion = async () => {
         }
 
         inlineActionState.flagDoneQuestionId = questionData.questionId;
-        setInlineStatus('Question added to openQbank.', 'success');
+        setInlineStatus('Question added to Library.', 'success');
     } catch (error) {
         const rawMsg = error instanceof Error ? error.message : 'Failed to add question.';
         const message = rawMsg.includes('Authentication required') ? 'Please sign in to openQbank via extension popup.' : rawMsg;
@@ -2668,7 +2667,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             .then(() => {
                 sendResponse({
                     success: true,
-                    message: 'Question added to openQbank.',
+                    message: 'Question added to Library.',
                 });
             })
             .catch((error) => {

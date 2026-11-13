@@ -12,6 +12,7 @@ import {
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
 } from './tierAccess';
+import { BYOK_SCHEMA, BYOK_SYSTEM_PROMPT } from '../selection/byokPrompt';
 
 describe('tierAccess', () => {
     it('identifies admin users with isOpenQbankAdmin', () => {
@@ -24,6 +25,7 @@ describe('tierAccess', () => {
         expect(isOpenQbankTier(null, 'free')).toBe(true);
         expect(isOpenQbankTier(null, 'pro')).toBe(true);
         expect(isOpenQbankFree(null, 'free')).toBe(true);
+        expect(isOpenQbankFree(null, 'pro')).toBe(false);
         expect(isOpenQbankPro(null, 'pro')).toBe(true);
     });
 
@@ -51,5 +53,20 @@ describe('tierAccess', () => {
 
     it('reads prefers-color-scheme for extension chrome', () => {
         expect(isExtensionDarkSurface()).toBe(false);
+    });
+});
+
+describe('BYOK cloze prompt and schema', () => {
+    it('enforces cloze-only schema with required cloze and notes fields', () => {
+        expect(BYOK_SCHEMA.properties).toHaveProperty('cloze');
+        expect(BYOK_SCHEMA.properties).toHaveProperty('notes');
+        expect(BYOK_SCHEMA.required).toContain('cloze');
+        expect(BYOK_SCHEMA.required).toContain('notes');
+        expect(BYOK_SCHEMA.additionalProperties).toBe(false);
+    });
+
+    it('instructs model for standard Anki cloze syntax in system prompt', () => {
+        expect(BYOK_SYSTEM_PROMPT).toContain('CLOZE');
+        expect(BYOK_SYSTEM_PROMPT).toContain('{{c1::');
     });
 });

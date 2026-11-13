@@ -3,6 +3,7 @@ import { ArrowUpCircle, Check, Loader2, LogIn, LogOut } from 'lucide-react';
 import { AuthProvider, getPreferredOrigins, useAuth } from './context/AuthContext';
 import {
     isHyGuruAccount,
+    isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankTier,
 } from './content/tierAccess';
@@ -42,6 +43,7 @@ function PopupContent() {
   const isHyGuruUser = isHyGuruAccount(userType, tier);
   const isOpenQbankUser = isOpenQbankTier(userType, tier);
   const isProUser = isOpenQbankPro(userType, tier);
+  const isFreeUser = isOpenQbankFree(userType, tier);
   const tierPillLabel = tier || 'Standard';
   const tierPillClassName = 'border border-amber-200 bg-[#ffe5b4] text-[#1f2937] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
 
@@ -494,25 +496,28 @@ function PopupContent() {
                       Manual Flashcards (+)
                     </label>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      Show floating (+) button to write flashcards manually.
+                      {isFreeUser
+                        ? 'Always enabled for free accounts to receive and edit cards.'
+                        : 'Show floating (+) button to write flashcards manually.'}
                     </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setCustomCardFabEnabled((prev) => !prev)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${customCardFabEnabled ? 'bg-[#ffe5b4]' : 'bg-slate-200 dark:bg-slate-700'}`}
+                    disabled={isFreeUser}
+                    onClick={() => !isFreeUser && setCustomCardFabEnabled((prev) => !prev)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${customCardFabEnabled || isFreeUser ? 'bg-[#ffe5b4]' : 'bg-slate-200 dark:bg-slate-700'} ${isFreeUser ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                     role="switch"
-                    aria-checked={customCardFabEnabled}
+                    aria-checked={customCardFabEnabled || isFreeUser}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${customCardFabEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${customCardFabEnabled || isFreeUser ? 'translate-x-5' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>
               </div>
             )}
 
-            {isOpenQbankUser && customCardFabPrefLoaded && (
+            {isOpenQbankUser && isProUser && customCardFabPrefLoaded && (
               <div className="pt-1">
                 <div className="flex items-center justify-between">
                   <div className="pr-2">
