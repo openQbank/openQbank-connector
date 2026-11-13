@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "openQbank Connector",
-    "version": "0.1.0",
+    "version": "14.0.0",
     "description": "Turn missed practice questions into targeted flashcards in one click. Master high-yield concepts with openQbank.",
     "permissions": [
         "activeTab",

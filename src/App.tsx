@@ -18,8 +18,11 @@ const BTN_ACTION =
 
 const CUSTOM_CARD_FAB_STORAGE_KEY = 'custom_card_fab_enabled';
 const AI_FLASHCARDS_STORAGE_KEY = 'ai_flashcards_enabled';
+const KEYBOARD_SHORTCUTS_STORAGE = 'keyboard_shortcuts_enabled';
 const BYOK_KEY_STORAGE = 'oqb_byok_openai_key';
 const BYOK_MODEL_STORAGE = 'oqb_byok_model';
+const BYOK_THINKING_LEVEL_STORAGE = 'oqb_byok_thinking_level';
+const BYOK_SERVICE_TIER_STORAGE = 'oqb_byok_service_tier';
 const OPENHYGURU_STORE_URL = 'https://chromewebstore.google.com/detail/dgajpjanpcdochcadolmgdoeddckpnli';
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0';
 
@@ -51,18 +54,39 @@ function PopupContent() {
   const [promptMode, setPromptMode] = useState<'default' | 'vignette'>(initialPromptMode || 'default');
   const [customCardFabEnabled, setCustomCardFabEnabled] = useState<boolean>(true);
   const [aiFlashcardsEnabled, setAiFlashcardsEnabled] = useState<boolean>(true);
+  const [keyboardShortcutsEnabled, setKeyboardShortcutsEnabled] = useState<boolean>(true);
   const [customCardFabPrefLoaded, setCustomCardFabPrefLoaded] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState('');
   const [byokKey, setByokKey] = useState('');
   const [byokModel, setByokModel] = useState('');
+  const [byokThinkingLevel, setByokThinkingLevel] = useState<'low' | 'medium' | 'high'>('medium');
+  const [byokServiceTier, setByokServiceTier] = useState<'fast' | 'flex' | 'regular'>('fast');
   const [byokMessage, setByokMessage] = useState('');
 
   useEffect(() => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      chrome.storage.local.get([BYOK_KEY_STORAGE, BYOK_MODEL_STORAGE], (res) => {
+      chrome.storage.local.get([
+        BYOK_KEY_STORAGE,
+        BYOK_MODEL_STORAGE,
+        BYOK_THINKING_LEVEL_STORAGE,
+        BYOK_SERVICE_TIER_STORAGE,
+      ], (res) => {
         if (typeof res?.[BYOK_KEY_STORAGE] === 'string') setByokKey(res[BYOK_KEY_STORAGE]);
         if (typeof res?.[BYOK_MODEL_STORAGE] === 'string') setByokModel(res[BYOK_MODEL_STORAGE]);
+        const thinking = res?.[BYOK_THINKING_LEVEL_STORAGE];
+        if (thinking === 'low' || thinking === 'medium' || thinking === 'high') {
+          setByokThinkingLevel(thinking);
+        }
+        const serviceTier = res?.[BYOK_SERVICE_TIER_STORAGE];
+        if (serviceTier === 'fast' || serviceTier === 'flex' || serviceTier === 'regular') {
+          setByokServiceTier(serviceTier);
+        }
+      });
+      chrome.storage.local.get([KEYBOARD_SHORTCUTS_STORAGE], (res) => {
+        if (typeof res?.[KEYBOARD_SHORTCUTS_STORAGE] === 'boolean') {
+          setKeyboardShortcutsEnabled(res[KEYBOARD_SHORTCUTS_STORAGE]);
+        }
       });
     }
   }, []);
@@ -72,16 +96,32 @@ function PopupContent() {
     await chrome.storage.local.set({
       [BYOK_KEY_STORAGE]: byokKey.trim(),
       [BYOK_MODEL_STORAGE]: byokModel.trim(),
+      [BYOK_THINKING_LEVEL_STORAGE]: byokThinkingLevel,
+      [BYOK_SERVICE_TIER_STORAGE]: byokServiceTier,
     });
     setByokMessage('Developer settings saved.');
   };
 
   const clearByokSettings = async () => {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) return;
-    await chrome.storage.local.remove([BYOK_KEY_STORAGE, BYOK_MODEL_STORAGE]);
+    await chrome.storage.local.remove([
+      BYOK_KEY_STORAGE,
+      BYOK_MODEL_STORAGE,
+      BYOK_THINKING_LEVEL_STORAGE,
+      BYOK_SERVICE_TIER_STORAGE,
+    ]);
     setByokKey('');
     setByokModel('');
+    setByokThinkingLevel('medium');
+    setByokServiceTier('fast');
     setByokMessage('Developer settings cleared.');
+  };
+
+  const toggleKeyboardShortcuts = (enabled: boolean) => {
+    setKeyboardShortcutsEnabled(enabled);
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      void chrome.storage.local.set({ [KEYBOARD_SHORTCUTS_STORAGE]: enabled });
+    }
   };
 
   useEffect(() => {
@@ -267,6 +307,7 @@ function PopupContent() {
           await chrome.storage.local.set({
             [CUSTOM_CARD_FAB_STORAGE_KEY]: customCardFabEnabled,
             [AI_FLASHCARDS_STORAGE_KEY]: aiFlashcardsEnabled,
+            [KEYBOARD_SHORTCUTS_STORAGE]: keyboardShortcutsEnabled,
           });
         }
         setSettingsMessage('Settings saved!');
@@ -455,9 +496,9 @@ function PopupContent() {
           </p>
         )}
 
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/60 px-3.5 py-2.5">
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 px-3.5 py-2.5">
           <div className="text-xs">
-            <span className="text-slate-400 dark:text-slate-500 font-medium">email: </span>
+            <span className="text-slate-400 dark:text-slate-400 font-medium">email: </span>
             <span className="font-bold text-slate-900 dark:text-slate-100">{accountEmail || 'User'}</span>
           </div>
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${tierPillClassName}`}>
@@ -543,6 +584,32 @@ function PopupContent() {
               </div>
             )}
 
+            {isOpenQbankUser && customCardFabPrefLoaded && (
+              <div className="pt-1">
+                <div className="flex items-center justify-between">
+                  <div className="pr-2">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Keyboard Shortcuts
+                    </label>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      Enable shortcuts for quick flashcard creation.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleKeyboardShortcuts(!keyboardShortcutsEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${keyboardShortcutsEnabled ? 'bg-[#ffe5b4]' : 'bg-slate-200 dark:bg-slate-700'}`}
+                    role="switch"
+                    aria-checked={keyboardShortcutsEnabled}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${keyboardShortcutsEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {isOpenQbankUser && !isProUser && (
               <details className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-3.5">
                 <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
@@ -572,7 +639,42 @@ function PopupContent() {
                       value={byokModel}
                       onChange={(e) => setByokModel(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                      placeholder="e.g. gpt-6-luna"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                      Thinking Level
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['low', 'medium', 'high'] as const).map((level) => (
+                        <button
+                          key={level}
+                          type="button"
+                          onClick={() => setByokThinkingLevel(level)}
+                          className={`rounded-lg border px-2 py-1.5 text-xs font-bold capitalize transition ${byokThinkingLevel === level ? 'border-[#fcd34d] bg-[#ffe5b4] text-[#1f2937] shadow-sm' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                      Service Tier
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(['fast', 'flex', 'regular'] as const).map((tier) => (
+                        <button
+                          key={tier}
+                          type="button"
+                          onClick={() => setByokServiceTier(tier)}
+                          className={`rounded-lg border px-2 py-1.5 text-xs font-bold capitalize transition ${byokServiceTier === tier ? 'border-[#fcd34d] bg-[#ffe5b4] text-[#1f2937] shadow-sm' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        >
+                          {tier}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { void saveByokSettings(); }} className={BTN_ACTION}>

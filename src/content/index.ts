@@ -56,6 +56,7 @@ interface InlineActionState {
     totalCards?: number;
     customCardFabEnabled?: boolean;
     aiFlashcardsEnabled?: boolean;
+    keyboardShortcutsEnabled?: boolean;
     userOwnedPreview?: boolean;
     upgradeRequired?: boolean;
     minVersion?: string;
@@ -184,6 +185,7 @@ const inlineActionState: InlineActionState = {
     totalCards: 0,
     customCardFabEnabled: true,
     aiFlashcardsEnabled: true,
+    keyboardShortcutsEnabled: true,
     userOwnedPreview: false,
     upgradeRequired: false,
     minVersion: undefined,
@@ -1554,6 +1556,7 @@ const renderInlineActions = () => {
         canonicalOrganSystems: CANONICAL_ORGAN_SYSTEMS,
         resolveOrganSystem,
         buildQuestionDataPayload,
+        keyboardShortcutsEnabled: inlineActionState.keyboardShortcutsEnabled !== false,
     });
 
     if (inlineActionState.customAnkiEnabled === null || !inlineActionState.statusResolved) {
@@ -1874,12 +1877,15 @@ const refreshCustomAnkiAccess = async () => {
         }
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
             try {
-                const stored = await chrome.storage.local.get(['custom_card_fab_enabled', 'ai_flashcards_enabled']);
+                const stored = await chrome.storage.local.get(['custom_card_fab_enabled', 'ai_flashcards_enabled', 'keyboard_shortcuts_enabled']);
                 if (stored && typeof stored.custom_card_fab_enabled === 'boolean') {
                     inlineActionState.customCardFabEnabled = stored.custom_card_fab_enabled;
                 }
                 if (stored && typeof stored.ai_flashcards_enabled === 'boolean') {
                     inlineActionState.aiFlashcardsEnabled = stored.ai_flashcards_enabled;
+                }
+                if (stored && typeof stored.keyboard_shortcuts_enabled === 'boolean') {
+                    inlineActionState.keyboardShortcutsEnabled = stored.keyboard_shortcuts_enabled;
                 }
             } catch {
                 // Ignore storage read failures.
@@ -2695,7 +2701,7 @@ try {
     if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area !== 'local') return;
-            if (changes[AUTH_STATUS_STORAGE_KEY] || changes['openqbank_access_token'] || changes['custom_card_fab_enabled'] || changes['ai_flashcards_enabled']) {
+            if (changes[AUTH_STATUS_STORAGE_KEY] || changes['openqbank_access_token'] || changes['custom_card_fab_enabled'] || changes['ai_flashcards_enabled'] || changes['keyboard_shortcuts_enabled']) {
                 void refreshCustomAnkiAccess().then(() => renderInlineActions());
             }
         });

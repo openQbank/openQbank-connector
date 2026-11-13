@@ -43,6 +43,7 @@ export interface CustomCardFabOptions {
   canonicalOrganSystems: readonly string[];
   resolveOrganSystem: (value?: string) => string;
   buildQuestionDataPayload?: (data?: any) => any;
+  keyboardShortcutsEnabled?: boolean;
 }
 
 const FAB_ROOT_ID = 'openchromebank-custom-card-root';
@@ -101,6 +102,22 @@ let setCardTypeRef: ((type: 'cloze' | 'basic' | 'image' | 'sequential') => void)
 let lastQuestionId = '';
 let currentImageDataUrl: string | null = null;
 let currentFrontImageDataUrl: string | null = null;
+let keyboardShortcutsEnabled = true;
+
+if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+  chrome.storage.local.get(['keyboard_shortcuts_enabled'], (res) => {
+    if (typeof res?.keyboard_shortcuts_enabled === 'boolean') {
+      keyboardShortcutsEnabled = res.keyboard_shortcuts_enabled;
+    }
+  });
+  if (chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.keyboard_shortcuts_enabled) {
+        keyboardShortcutsEnabled = changes.keyboard_shortcuts_enabled.newValue !== false;
+      }
+    });
+  }
+}
 
 const MAX_INPUT_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB raw input limit before compression
 const TARGET_PAYLOAD_SIZE_BYTES = 1.8 * 1024 * 1024; // 1.8MB target to stay safely under 2MB over the wire
@@ -327,6 +344,9 @@ export const updateCustomCardFabVisibility = (
 };
 
 export const ensureCustomCardFab = (options: CustomCardFabOptions) => {
+  if (typeof options.keyboardShortcutsEnabled === 'boolean') {
+    keyboardShortcutsEnabled = options.keyboardShortcutsEnabled;
+  }
   const status = options.getStatus();
   if (!status.isOpenQbankUser) {
     removeCustomCardFab();
@@ -986,6 +1006,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   // Keyboard shortcuts:
   // 1. Cmd + Enter (or Ctrl + Enter) submits the card if content is not empty
   modal?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!keyboardShortcutsEnabled) return;
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       const front = (frontInput?.value || '').trim();
       const hasImage = currentCardType === 'image' && Boolean(currentFrontImageDataUrl);
@@ -1009,6 +1030,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
 
   // 3. Pressing 'a' on page opens the manual card creation workflow (unless typing in an input)
   window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!keyboardShortcutsEnabled) return;
     if ((e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey && !e.altKey) {
       const activeEl = document.activeElement;
       const isInput = activeEl && (
@@ -1959,7 +1981,8 @@ const injectFabStyles = () => {
       }
       .ocb-segment-btn { background: var(--ocb-bg-surface-alt); color: var(--ocb-text-secondary); border-color: var(--ocb-border); }
       .ocb-segment-btn.ocb-segment-active { background: var(--ocb-bg-surface); color: var(--ocb-text); }
-      .ocb-btn-ghost { background: var(--ocb-bg-surface-alt); border-color: var(--ocb-border); color: var(--ocb-text-secondary); }
+      .ocb-btn-ghost { background: var(--ocb-bg-surface-alt); border-color: var(--ocb-border); color: #ffffff !important; }
+      .ocb-btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.5); color: #ffffff !important; }
       .ocb-modal-footer { background: var(--ocb-bg-surface-alt); border-top-color: var(--ocb-border); }
       .ocb-media-dropzone { background: var(--ocb-bg-surface-alt); border-color: var(--ocb-border); }
       .ocb-media-preview-box { background: var(--ocb-bg-surface-alt); border-color: var(--ocb-border); }

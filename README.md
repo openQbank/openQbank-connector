@@ -1,7 +1,5 @@
 # openQbank Connector
 
-Hey! This is the browser extension for [openQbank](https://openqbank.com).
-
 I built this connector because studying for the USMLE with generic 30,000-card Anki decks and clunky copy-pasting was driving me crazy. Instead of breaking your flow during question review, this extension embeds directly into your favorite question banks so you can make targeted, clean flashcards right when you miss a question.
 
 ---
@@ -108,7 +106,7 @@ npm run lint
 
 ## Development Disclaimer
 
-The vast majority of the code in this repository was written by various LLMs. That being said, I designed the architecture and privacy standards from scratch, prompting agents with highly specific design instructions. I encourage you to review the code, find issues, and open PRs. Please also open PRs if you have any feature requests :). 
+The vast majority of the code in this repository was written by various LLMs. That being said, I designed the architecture and privacy standards from scratch, prompting agents with highly specific design instructions. I encourage you to review the code, find issues, and open PRs. Please also open PRs if you have any feature requests :). One of my design choices was to have accounts. The reasoning behind this is that I hope to eventually build a community feature where users can view all cards created for a given question and add it to their library. I also cover cost of development, including MacOS notary fees, distribution, hosting, etc. with these Pro accounts. If you are worried about your privacy, you can review my [Privacy Policy](https://openqbank.com/privacy), though generally, I collect no tracking information. You can also obviously make a temporary email. 
 
 ---
 

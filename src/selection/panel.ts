@@ -76,9 +76,16 @@ export const openSelectionPanel = (selectionText: string): void => {
         textarea { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; resize: vertical; min-height: 72px; }
         .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
         .btn-primary { flex: 1; height: 40px; border-radius: 12px; border: none; background: #ffe5b4; color: #1f2937; font-weight: 700; cursor: pointer; }
-        .btn-ghost { height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: transparent; cursor: pointer; }
+        .btn-ghost { height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--ocb-border, #e5e7eb); background: transparent; cursor: pointer; font-weight: 700; font-size: 13px; color: var(--ocb-text, #1f2937); transition: all 150ms ease; }
+        .btn-ghost:hover { background: rgba(0, 0, 0, 0.05); }
         .status { margin-top: 10px; font-size: 12px; color: #4b5563; min-height: 1.2em; }
         a { color: #2563eb; }
+        @media (prefers-color-scheme: dark) {
+            #oqb-sel-title { color: #ffffff !important; }
+            label { color: #94a3b8 !important; }
+            .btn-ghost { color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35) !important; }
+            .btn-ghost:hover { background: rgba(255, 255, 255, 0.12) !important; border-color: rgba(255, 255, 255, 0.6) !important; }
+        }
         </style>
         <div class="wrap" id="backdrop">
             <div class="panel" role="dialog" aria-modal="true" aria-labelledby="oqb-sel-title">

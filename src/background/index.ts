@@ -258,36 +258,76 @@ const handleOpenQBankRequest = async (request: OpenQBankRequest, origins: string
 };
 
 const handleByokGenerate = async (selection: string, grounding: string) => {
-    const stored = await chrome.storage.local.get(['oqb_byok_openai_key', 'oqb_byok_model']);
+    const stored = await chrome.storage.local.get([
+        'oqb_byok_openai_key',
+        'oqb_byok_model',
+        'oqb_byok_thinking_level',
+        'oqb_byok_service_tier',
+    ]);
     const key = String(stored.oqb_byok_openai_key || '').trim();
     const model = String(stored.oqb_byok_model || '').trim();
+    const thinkingLevel = (stored.oqb_byok_thinking_level as 'low' | 'medium' | 'high' | undefined) || 'medium';
+    const serviceTier = (stored.oqb_byok_service_tier as 'fast' | 'flex' | 'regular' | undefined) || 'fast';
     if (!key || !model) {
         return { ok: false, error: 'Add an OpenAI key and model under Settings → Advanced.' };
     }
 
     try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const serviceTierValue = serviceTier === 'regular' ? 'default' : serviceTier;
+        const requestBody: Record<string, unknown> = {
+            model,
+            messages: [
+                { role: 'system', content: BYOK_SYSTEM_PROMPT },
+                {
+                    role: 'user',
+                    content: `SELECTION:\n${selection}\n\nWHAT_I_GOT_WRONG:\n${grounding || 'none'}`,
+                },
+            ],
+            response_format: {
+                type: 'json_schema',
+                json_schema: { name: 'flashcard', strict: true, schema: BYOK_SCHEMA },
+            },
+            service_tier: serviceTierValue,
+            reasoning_effort: thinkingLevel,
+        };
+
+        let response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             signal: AbortSignal.timeout(45000),
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${key}`,
             },
-            body: JSON.stringify({
-                model,
-                messages: [
-                    { role: 'system', content: BYOK_SYSTEM_PROMPT },
-                    {
-                        role: 'user',
-                        content: `SELECTION:\n${selection}\n\nWHAT_I_GOT_WRONG:\n${grounding || 'none'}`,
-                    },
-                ],
-                response_format: {
-                    type: 'json_schema',
-                    json_schema: { name: 'flashcard', strict: true, schema: BYOK_SCHEMA },
-                },
-            }),
+            body: JSON.stringify(requestBody),
         });
+
+        // Graceful fallback if model doesn't support reasoning_effort or service_tier
+        if (response.status === 400 && (requestBody.reasoning_effort || requestBody.service_tier)) {
+            const errorClone = response.clone();
+            const errData = await errorClone.json().catch(() => null) as { error?: { message?: string; param?: string } } | null;
+            const errMsg = errData?.error?.message?.toLowerCase() || '';
+            const errParam = errData?.error?.param?.toLowerCase() || '';
+            let shouldRetry = false;
+            if (requestBody.reasoning_effort && (errParam === 'reasoning_effort' || errMsg.includes('reasoning_effort') || errMsg.includes('reasoning'))) {
+                delete requestBody.reasoning_effort;
+                shouldRetry = true;
+            }
+            if (requestBody.service_tier && (errParam === 'service_tier' || errMsg.includes('service_tier'))) {
+                delete requestBody.service_tier;
+                shouldRetry = true;
+            }
+            if (shouldRetry) {
+                response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    signal: AbortSignal.timeout(45000),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${key}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+            }
+        }
 
         if (response.status === 401) {
             return { ok: false, error: 'OpenAI rejected your API key.' };
