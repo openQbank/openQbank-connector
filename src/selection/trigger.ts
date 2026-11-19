@@ -22,8 +22,8 @@ const showPill = (rect: DOMRect, text: string) => {
     const pill = document.createElement('button');
     pill.id = PILL_ID;
     pill.type = 'button';
-    pill.textContent = 'Make card';
-    pill.setAttribute('aria-label', 'Make openQbank card from selection');
+    pill.textContent = 'Create card';
+    pill.setAttribute('aria-label', 'Create openQbank card from selection');
     pill.dataset.selection = text;
     const margin = 8;
     const left = Math.min(Math.max(rect.right - 90, margin), window.innerWidth - 100);

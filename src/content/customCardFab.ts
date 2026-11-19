@@ -1113,6 +1113,13 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
       const sequentialSteps =
         currentCardType === 'sequential' ? collectOcbSequentialSteps(root) : undefined;
 
+      const stored = typeof chrome !== 'undefined' && chrome.storage?.local
+        ? await chrome.storage.local.get(['ai_flashcards_enabled'])
+        : null;
+      const isPrivate = stored && typeof stored.ai_flashcards_enabled === 'boolean'
+        ? !stored.ai_flashcards_enabled
+        : false;
+
       const response = await options.sendRequest<{
         success?: boolean;
         error?: string;
@@ -1130,6 +1137,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
           topic,
           image: frontImage,
           correct_explanation_image: explanationImage,
+          is_private: isPrivate,
           ...(sequentialSteps ? { steps: sequentialSteps } : {}),
         },
         true,
@@ -1999,10 +2007,14 @@ const injectFabStyles = () => {
 };
 
 export interface CustomCardPrefill {
-  cardType: 'basic' | 'cloze';
+  cardType: 'basic' | 'cloze' | 'image' | 'sequential';
   front: string;
   back: string;
   notes?: string;
+  organSystem?: string;
+  subject?: string;
+  topic?: string;
+  steps?: { label: string; value: string }[];
 }
 
 export const openCustomCardModal = async (
@@ -2034,6 +2046,10 @@ export const openCustomCardModal = async (
   if (backInput) backInput.value = prefill.back || '';
   if (notesInput) notesInput.value = prefill.notes || '';
 
+  if (prefill.steps && prefill.cardType === 'sequential') {
+    renderOcbSequentialSteps(root, prefill.steps);
+  }
+
   // Open the modal if collapsed, or maintain open state
   if (modal) {
     modal.classList.add('ocb-modal-open');
@@ -2043,6 +2059,26 @@ export const openCustomCardModal = async (
 
   // Always autodetect question metadata (subject, system, topic for UWorld, etc.)
   await autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
+
+  if (prefill.organSystem && systemSelect) {
+    const existingOption = Array.from(systemSelect.options).find(
+      (opt) => opt.value.toLowerCase() === prefill.organSystem!.toLowerCase()
+    );
+    if (!existingOption) {
+      const newOpt = document.createElement('option');
+      newOpt.value = prefill.organSystem;
+      newOpt.textContent = prefill.organSystem;
+      systemSelect.appendChild(newOpt);
+    }
+    systemSelect.value = existingOption ? existingOption.value : prefill.organSystem;
+  }
+  if (prefill.subject && subjectInput) {
+    subjectInput.value = prefill.subject;
+  }
+  if (prefill.topic && topicInput) {
+    topicInput.value = prefill.topic;
+  }
+
   syncMediaProState(root, options);
 
   setTimeout(() => frontInput?.focus(), 120);

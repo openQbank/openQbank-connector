@@ -75,27 +75,69 @@ export const openSelectionPanel = (selectionText: string): void => {
         label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 6px; }
         textarea { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; resize: vertical; min-height: 72px; }
         .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
-        .btn-primary { flex: 1; height: 40px; border-radius: 12px; border: none; background: #ffe5b4; color: #1f2937; font-weight: 700; cursor: pointer; }
-        .btn-ghost { height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--ocb-border, #e5e7eb); background: transparent; cursor: pointer; font-weight: 700; font-size: 13px; color: var(--ocb-text, #1f2937); transition: all 150ms ease; }
-        .btn-ghost:hover { background: rgba(0, 0, 0, 0.05); }
+        .btn-primary {
+            flex: 1;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #ffe5b4;
+            color: #1f2937;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-primary:hover {
+            background: #ffdab9;
+            transform: translateY(-1px);
+        }
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+        .btn-ghost {
+            height: 42px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid var(--ocb-border, #e5e7eb);
+            background: var(--ocb-bg-surface, #ffffff);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--ocb-text-secondary, #4b5563);
+            transition: all 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-ghost:hover {
+            background: var(--ocb-bg-surface-alt, #f3f4f6);
+            color: var(--ocb-text, #111827);
+            transform: translateY(-1px);
+        }
+        .btn-ghost:active {
+            transform: translateY(1px);
+        }
         .status { margin-top: 10px; font-size: 12px; color: #4b5563; min-height: 1.2em; }
         a { color: #2563eb; }
         @media (prefers-color-scheme: dark) {
             #oqb-sel-title { color: #ffffff !important; }
             label { color: #94a3b8 !important; }
-            .btn-ghost { color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35) !important; }
+            .btn-ghost { color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35) !important; background: transparent !important; }
             .btn-ghost:hover { background: rgba(255, 255, 255, 0.12) !important; border-color: rgba(255, 255, 255, 0.6) !important; }
         }
         </style>
         <div class="wrap" id="backdrop">
             <div class="panel" role="dialog" aria-modal="true" aria-labelledby="oqb-sel-title">
-                <h2 id="oqb-sel-title" style="margin:0 0 12px;font-size:16px;font-weight:700;">Make openQbank card</h2>
+                <h2 id="oqb-sel-title" style="margin:0 0 12px;font-size:16px;font-weight:700;">Create openQbank card</h2>
                 <label for="oqb-sel-text">Selection</label>
                 <textarea id="oqb-sel-text"></textarea>
                 <label for="oqb-sel-ground" style="margin-top:12px;">What did I get wrong? (optional)</label>
                 <textarea id="oqb-sel-ground" rows="2" placeholder="Optional note"></textarea>
                 <div class="actions">
-                    <button type="button" class="btn-primary" id="oqb-sel-generate">Generate</button>
+                    <button type="button" class="btn-primary" id="oqb-sel-generate">Create card</button>
                     <button type="button" class="btn-ghost" id="oqb-sel-close">Close</button>
                 </div>
                 <div class="status" id="oqb-sel-status" aria-live="polite"></div>
@@ -180,8 +222,16 @@ export const openSelectionPanel = (selectionText: string): void => {
                         const qData = await getQuestionContent();
                         const data = await sendOpenQBankRequest<{
                             success?: boolean;
-                            count?: number;
-                            library_url?: string;
+                            card?: {
+                                card_type: 'cloze' | 'basic' | 'sequential';
+                                front: string;
+                                back?: string;
+                                notes?: string;
+                                organ_system?: string;
+                                subject?: string;
+                                topic?: string;
+                                steps?: { label: string; value: string }[];
+                            };
                             error?: string;
                         }>(
                             '/api/extension/selection-card',
@@ -196,17 +246,24 @@ export const openSelectionPanel = (selectionText: string): void => {
                             'POST',
                             60000,
                         );
-                        if (!data?.success) {
+                        if (!data?.success || !data.card) {
                             setStatus(data?.error || 'Generation failed.');
                             genBtn.disabled = false;
                             return;
                         }
-                        const url = data.library_url || 'https://openqbank.com/me';
-                        setStatus(
-                            `Added ${data.count ?? 1} card(s) to your library. `
-                            + `<a href="${url}" target="_blank" rel="noopener">View in library</a>`,
-                        );
-                        setTimeout(close, 4000);
+                        close();
+                        window.removeEventListener('keydown', onKey, true);
+                        const opts = fabOptions ?? buildFabOptions(status);
+                        await openCustomCardModal(opts, {
+                            cardType: data.card.card_type,
+                            front: data.card.front,
+                            back: data.card.back || '',
+                            notes: data.card.notes || grounding || undefined,
+                            organSystem: data.card.organ_system,
+                            subject: data.card.subject,
+                            topic: data.card.topic,
+                            steps: data.card.steps,
+                        });
                         return;
                     }
                     if (!hasByok) {

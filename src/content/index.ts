@@ -2,11 +2,9 @@ import {
     CARD_POLL_CHECK_OFFSETS_MS,
     calculateCardPollProgress,
     isOpenQbankTier,
-    isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankAdmin,
     isLeadInCard,
-    shouldShowOpenQbankGenerateButton,
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
 } from './tierAccess';
@@ -1504,11 +1502,9 @@ const renderInlineActions = () => {
         inlineActionState.statusResolved &&
         isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier)
     );
-    const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
     const fabShouldShow = Boolean(
         fingerprint?.questionId &&
-        isOpenQbank &&
-        (isOpenQbankFreeUser || inlineActionState.customCardFabEnabled === true)
+        isOpenQbank
     );
 
     updateCustomCardFabVisibility(fabShouldShow, {
@@ -1531,9 +1527,10 @@ const renderInlineActions = () => {
     if (inlineActionState.customAnkiEnabled === null || !inlineActionState.statusResolved) {
         void refreshCustomAnkiAccess().then(() => renderInlineActions());
     } else if (
-        (inlineActionState.customAnkiEnabled === true || false)
+        (inlineActionState.customAnkiEnabled === true || isOpenQbank)
         && inlineActionState.generatedCardsText === null
         && !inlineActionState.cardsPending
+        && inlineActionState.aiFlashcardsEnabled !== false
     ) {
         void checkExistingCards();
     }
@@ -1598,13 +1595,8 @@ const renderInlineActions = () => {
 
     if (cardsButton) {
         const isOpenQbank = isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier);
-        const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
         const showCards = isOpenQbank
-            ? !isOpenQbankFreeUser && shouldShowOpenQbankGenerateButton(
-                Boolean(inlineActionState.customAnkiEnabled),
-                hasCardsDisplayed,
-                inlineActionState.aiFlashcardsEnabled !== false,
-            )
+            ? false
             : isHigherTier && !hasCardsDisplayed;
         if (showCards) {
             cardsButton.hidden = false;
@@ -2280,8 +2272,9 @@ const pollCardGeneration = async (questionId: string, questionData: QuestionData
 };
 
 const checkExistingCards = async () => {
-if (!inlineActionState.questionId) return;
-const questionId = inlineActionState.questionId;
+    if (!inlineActionState.questionId) return;
+    if (inlineActionState.aiFlashcardsEnabled === false) return;
+    const questionId = inlineActionState.questionId;
 
 if (
     inlineActionState.cardsPending
@@ -2395,8 +2388,9 @@ const handleInlineGenerateCards = async () => {
     // Refresh entitlement before serving/generating content.
     await refreshCustomAnkiAccess();
 
+    // OpenQbank users generate cards exclusively via highlighting text.
     if (
-        isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier)
+        isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier)
         || inlineActionState.aiFlashcardsEnabled === false
     ) {
         renderInlineActions();

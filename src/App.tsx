@@ -4,7 +4,6 @@ import { ArrowUpCircle, Check, Loader2, LogIn, LogOut } from 'lucide-react';
 import { AuthProvider, getPreferredOrigins, useAuth } from './context/AuthContext';
 import {
     isHyGuruAccount,
-    isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankTier,
 } from './content/tierAccess';
@@ -47,13 +46,11 @@ function PopupContent() {
   const isHyGuruUser = isHyGuruAccount(userType, tier);
   const isOpenQbankUser = isOpenQbankTier(userType, tier);
   const isProUser = isOpenQbankPro(userType, tier);
-  const isFreeUser = isOpenQbankFree(userType, tier);
   const tierPillLabel = tier || 'Standard';
   const tierPillClassName = 'border border-amber-200 bg-[#ffe5b4] text-[#1f2937] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
 
   const [examMode, setExamMode] = useState<string>(initialExamMode || 'Step 1');
   const [promptMode, setPromptMode] = useState<'default' | 'vignette'>(initialPromptMode || 'default');
-  const [customCardFabEnabled, setCustomCardFabEnabled] = useState<boolean>(true);
   const [aiFlashcardsEnabled, setAiFlashcardsEnabled] = useState<boolean>(true);
   const [keyboardShortcutsEnabled, setKeyboardShortcutsEnabled] = useState<boolean>(true);
   const [customCardFabPrefLoaded, setCustomCardFabPrefLoaded] = useState(false);
@@ -127,10 +124,7 @@ function PopupContent() {
 
   useEffect(() => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      chrome.storage.local.get([CUSTOM_CARD_FAB_STORAGE_KEY, AI_FLASHCARDS_STORAGE_KEY], (res) => {
-        if (res && typeof res[CUSTOM_CARD_FAB_STORAGE_KEY] === 'boolean') {
-          setCustomCardFabEnabled(res[CUSTOM_CARD_FAB_STORAGE_KEY]);
-        }
+      chrome.storage.local.get([AI_FLASHCARDS_STORAGE_KEY], (res) => {
         if (res && typeof res[AI_FLASHCARDS_STORAGE_KEY] === 'boolean') {
           setAiFlashcardsEnabled(res[AI_FLASHCARDS_STORAGE_KEY]);
         }
@@ -306,7 +300,7 @@ function PopupContent() {
       } else {
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
           await chrome.storage.local.set({
-            [CUSTOM_CARD_FAB_STORAGE_KEY]: customCardFabEnabled,
+            [CUSTOM_CARD_FAB_STORAGE_KEY]: true,
             [AI_FLASHCARDS_STORAGE_KEY]: aiFlashcardsEnabled,
             [KEYBOARD_SHORTCUTS_STORAGE]: keyboardShortcutsEnabled,
           });
@@ -535,39 +529,10 @@ function PopupContent() {
                 <div className="flex items-center justify-between">
                   <div className="pr-2">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Manual Flashcards (+)
+                      Community Flashcards
                     </label>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      {isFreeUser
-                        ? 'Always enabled for free accounts to receive and edit cards.'
-                        : 'Show floating (+) button to write flashcards manually.'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={isFreeUser}
-                    onClick={() => !isFreeUser && setCustomCardFabEnabled((prev) => !prev)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${customCardFabEnabled || isFreeUser ? 'bg-[#ffe5b4]' : 'bg-slate-200 dark:bg-slate-700'} ${isFreeUser ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
-                    role="switch"
-                    aria-checked={customCardFabEnabled || isFreeUser}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${customCardFabEnabled || isFreeUser ? 'translate-x-5' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {isOpenQbankUser && isProUser && customCardFabPrefLoaded && (
-              <div className="pt-1">
-                <div className="flex items-center justify-between">
-                  <div className="pr-2">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      AI Flashcards
-                    </label>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      Show the inline Generate Flashcard action.
+                      Share and view community flashcards on questions. Opting out keeps cards private.
                     </p>
                   </div>
                   <button
