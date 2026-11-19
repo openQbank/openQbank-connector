@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "openQbank Connector",
-    "version": "14.1.3",
+    "version": "14.1.5",
     "description": "Turn anything into targeted flashcards. Free and open-source.",
     "permissions": [
         "activeTab",

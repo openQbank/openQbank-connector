@@ -6,6 +6,7 @@ import { resolve } from 'path'
 const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as { version: string }
 
 const extractEntry = [
+  resolve(__dirname, 'src/extract/index.ts'),
   resolve(__dirname, '../qbank-extract/src/index.ts'),
   resolve(__dirname, 'node_modules/@openqbank/extract/src/index.ts'),
   resolve(__dirname, 'src/extract/stub.ts'),

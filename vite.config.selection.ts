@@ -3,6 +3,7 @@ import { existsSync } from 'fs'
 import { resolve } from 'path'
 
 const extractEntry = [
+  resolve(__dirname, 'src/extract/index.ts'),
   resolve(__dirname, '../qbank-extract/src/index.ts'),
   resolve(__dirname, 'node_modules/@openqbank/extract/src/index.ts'),
   resolve(__dirname, 'src/extract/stub.ts'),
