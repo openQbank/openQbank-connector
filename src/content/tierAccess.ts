@@ -45,10 +45,10 @@ export const isOpenQbankAdmin = (userType: string | null | undefined, userTier: 
 };
 
 export const shouldShowOpenQbankGenerateButton = (
-    _customAnkiEnabled?: boolean,
-    _hasCardsDisplayed?: boolean,
-    _aiFlashcardsEnabled: boolean = true,
-): boolean => false;
+    customAnkiEnabled: boolean,
+    hasCardsDisplayed: boolean,
+    aiFlashcardsEnabled: boolean = true,
+): boolean => Boolean(customAnkiEnabled && aiFlashcardsEnabled) && !hasCardsDisplayed;
 
 export const isLeadInCard = (card: {
     cardType?: string;

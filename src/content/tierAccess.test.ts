@@ -29,9 +29,8 @@ describe('tierAccess', () => {
         expect(isOpenQbankPro(null, 'pro')).toBe(true);
     });
 
-    it('never shows Generate button for openQbank inline preview', () => {
-        expect(shouldShowOpenQbankGenerateButton(true, false)).toBe(false);
-        expect(shouldShowOpenQbankGenerateButton(false, false)).toBe(false);
+    it('gates Generate button for openQbank inline preview', () => {
+        expect(shouldShowOpenQbankGenerateButton(true, false)).toBe(true);
         expect(shouldShowOpenQbankGenerateButton(true, true)).toBe(false);
     });
 
