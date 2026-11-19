@@ -1647,7 +1647,7 @@ const renderInlineActions = () => {
                 cardsButton.classList.add('ocb-button--countdown');
                 cardsButton.classList.remove('ocb-button--peach-cta');
                 cardsButton.style.setProperty('--ocb-progress', `${(inlineActionState.countdownProgress ?? 0).toFixed(1)}%`);
-                cardsButton.innerHTML = `Generating flashcard...`;
+                cardsButton.innerHTML = `Generating...`;
             } else {
                 cardsButton.classList.remove('ocb-button--countdown');
                 cardsButton.classList.remove('ocb-button--peach-cta');
@@ -1683,7 +1683,7 @@ const renderInlineActions = () => {
     }
 
     if (status) {
-        if (hasCardsDisplayed || inlineActionState.statusKind === 'info') {
+        if (hasCardsDisplayed || inlineActionState.statusKind === 'info' || inlineActionState.cardsPending) {
             status.textContent = '';
             status.style.setProperty('display', 'none', 'important');
         } else {
@@ -2221,7 +2221,7 @@ const pollCardGeneration = async (questionId: string, questionData: QuestionData
     activeCardPolls.add(questionId);
     polledQuestionIds.add(questionId);
 
-    const labelText = 'Generating flashcard...';
+    const labelText = 'Generating...';
     const pollStartedAt = inlineActionState.countdownStartedAt ?? Date.now();
     if (inlineActionState.countdownStartedAt == null) {
         inlineActionState.countdownStartedAt = pollStartedAt;
@@ -2413,7 +2413,7 @@ if (applyCachedPreview && cachedCards) {
     inlineActionState.cardsPending = true;
     inlineActionState.countdownProgress = 0;
     inlineActionState.countdownStartedAt = Date.now();
-    const queuedLabel = 'Generating flashcard...';
+    const queuedLabel = 'Generating...';
     startCardsProgressTicker(queuedLabel, false);
     renderInlineActions();
     void pollCardGeneration(questionId, questionData);
@@ -2494,7 +2494,7 @@ const handleInlineGenerateCards = async () => {
     inlineActionState.cardsPending = true;
     inlineActionState.countdownProgress = 0;
     inlineActionState.countdownStartedAt = Date.now();
-    const pendingLabel = 'Generating flashcard...';
+    const pendingLabel = 'Generating...';
     inlineActionState.countdownText = pendingLabel;
     setInlineStatus('', 'idle');
     startCardsProgressTicker(pendingLabel, false);

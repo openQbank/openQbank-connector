@@ -1,5 +1,5 @@
 import { OPENQBANK_INJECTED_TOKEN_CSS } from '../content/openqbankTokens';
-import { isOpenQbankPro, isHyGuruAccount } from '../content/tierAccess';
+import { isOpenQbankPro, isHyGuruAccount, calculateCardPollProgress } from '../content/tierAccess';
 import { sendOpenQBankRequest } from '../shared/request';
 import { buildQuestionDataPayload, getQuestionContent, getQuestionFingerprint } from '@extract';
 import {
@@ -99,6 +99,20 @@ export const openSelectionPanel = (selectionText: string): void => {
             opacity: 0.6;
             pointer-events: none;
             filter: grayscale(1);
+        }
+        .btn-primary.ocb-button--countdown {
+            position: relative !important;
+            border: 2px solid #ffdab9 !important;
+            background:
+                linear-gradient(90deg, #ffe5b4, #ffb347, #3b82f6) left center / var(--ocb-progress, 0%) 100% no-repeat,
+                #fff7ed !important;
+            opacity: 0.95 !important;
+            cursor: not-allowed !important;
+            color: #1f2937 !important;
+            transition: background-size 0.15s ease-out;
+            pointer-events: none;
+            filter: none !important;
+            transform: none !important;
         }
         .btn-ghost {
             height: 42px;
@@ -214,8 +228,36 @@ export const openSelectionPanel = (selectionText: string): void => {
                     setStatus('Selection is too short.');
                     return;
                 }
+
+                let tickerId: number | null = null;
+                const stopTicker = () => {
+                    if (tickerId != null) {
+                        window.clearInterval(tickerId);
+                        tickerId = null;
+                    }
+                };
+                const resetBtn = (errMsg?: string) => {
+                    stopTicker();
+                    genBtn.classList.remove('ocb-button--countdown');
+                    genBtn.style.removeProperty('--ocb-progress');
+                    genBtn.disabled = false;
+                    genBtn.textContent = 'Create card';
+                    if (errMsg) setStatus(errMsg);
+                };
+
                 genBtn.disabled = true;
-                setStatus('Generating…');
+                genBtn.classList.add('ocb-button--countdown');
+                genBtn.style.setProperty('--ocb-progress', '0%');
+                genBtn.textContent = 'Generating...';
+                setStatus('');
+
+                const startTime = Date.now();
+                tickerId = window.setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = calculateCardPollProgress(elapsed);
+                    genBtn.style.setProperty('--ocb-progress', `${progress.toFixed(1)}%`);
+                }, 100);
+
                 try {
                     if (isPro) {
                         const fp = getQuestionFingerprint();
@@ -247,17 +289,19 @@ export const openSelectionPanel = (selectionText: string): void => {
                             60000,
                         );
                         if (!data?.success || !data.card) {
-                            setStatus(data?.error || 'Generation failed.');
-                            genBtn.disabled = false;
+                            resetBtn(data?.error || 'Generation failed.');
                             return;
                         }
+                        stopTicker();
+                        genBtn.style.setProperty('--ocb-progress', '100%');
                         close();
                         window.removeEventListener('keydown', onKey, true);
                         const opts = fabOptions ?? buildFabOptions(status);
+                        const cardFront = data.card.front || (data.card as any).cloze || (data.card as any).cloze_text || (data.card as any).text || '';
                         await openCustomCardModal(opts, {
-                            cardType: data.card.card_type,
-                            front: data.card.front,
-                            back: data.card.back || '',
+                            cardType: 'cloze',
+                            front: cardFront,
+                            back: '',
                             notes: data.card.notes || grounding || undefined,
                             organSystem: data.card.organ_system,
                             subject: data.card.subject,
@@ -267,8 +311,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                         return;
                     }
                     if (!hasByok) {
-                        setStatus('Add an OpenAI key under Settings → Advanced, or upgrade to Pro.');
-                        genBtn.disabled = false;
+                        resetBtn('Add an OpenAI key under Settings → Advanced, or upgrade to Pro.');
                         return;
                     }
                     const byok = await chrome.runtime.sendMessage({
@@ -277,10 +320,11 @@ export const openSelectionPanel = (selectionText: string): void => {
                         grounding,
                     }) as { ok?: boolean; error?: string; card?: { card_type: 'cloze'; front: string; back: string; notes?: string } };
                     if (!byok?.ok || !byok.card) {
-                        setStatus(byok?.error || 'OpenAI generation failed.');
-                        genBtn.disabled = false;
+                        resetBtn(byok?.error || 'OpenAI generation failed.');
                         return;
                     }
+                    stopTicker();
+                    genBtn.style.setProperty('--ocb-progress', '100%');
                     close();
                     window.removeEventListener('keydown', onKey, true);
                     const opts = fabOptions ?? buildFabOptions(status);
@@ -291,8 +335,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                         notes: byok.card.notes || grounding || undefined,
                     });
                 } catch (err) {
-                    setStatus(err instanceof Error ? err.message : 'Request failed.');
-                    genBtn.disabled = false;
+                    resetBtn(err instanceof Error ? err.message : 'Request failed.');
                 }
             });
         } catch (err) {

@@ -2039,12 +2039,22 @@ export const openCustomCardModal = async (
   }
 
   const isPro = Boolean(options.getStatus().isPro);
-  applyCardTypeDom(root, prefill.cardType || 'cloze', isPro);
-  setCardTypeRef?.(prefill.cardType || 'cloze');
+  const resolvedCardType = prefill.cardType || 'cloze';
+  applyCardTypeDom(root, resolvedCardType, isPro);
+  setCardTypeRef?.(resolvedCardType);
 
-  if (frontInput) frontInput.value = prefill.front || '';
-  if (backInput) backInput.value = prefill.back || '';
-  if (notesInput) notesInput.value = prefill.notes || '';
+  if (frontInput) {
+    frontInput.value = prefill.front || '';
+    frontInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (backInput) {
+    backInput.value = prefill.back || '';
+    backInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  if (notesInput) {
+    notesInput.value = prefill.notes || '';
+    notesInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
 
   if (prefill.steps && prefill.cardType === 'sequential') {
     renderOcbSequentialSteps(root, prefill.steps);
