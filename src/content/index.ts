@@ -32,8 +32,6 @@ interface InlineActionState {
     questionId: string | null;
     cardsPending: boolean;
     cardsDoneQuestionId: string | null;
-    flagPending: boolean;
-    flagDoneQuestionId: string | null;
     customAnkiEnabled: boolean | null;
     status: string;
     statusKind: 'idle' | 'info' | 'success' | 'error';
@@ -69,10 +67,6 @@ const INLINE_ACTIONS_STYLE_ID = 'openchromebank-inline-actions-style';
 const normalizeWhitespace = (text: string): string =>
     text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 
-type LearningFlagResponse = {
-    flagged?: boolean;
-};
-
 type GenerateCardsResponse = {
     queued?: boolean;
     already_cached?: boolean;
@@ -94,20 +88,6 @@ const requestGenerateCards = async (
 ): Promise<GenerateCardsResponse> => {
     return (await sendOpenQBankRequest<GenerateCardsResponse>(
         '/api/extension/generate-cards',
-        {
-            question_id: questionId?.trim() || questionData?.questionId?.trim() || '',
-            question_data: buildQuestionDataPayload(questionData),
-        },
-        true,
-    )) || {};
-};
-
-const requestLearningFlag = async (
-    questionId?: string,
-    questionData?: QuestionData | null,
-) : Promise<LearningFlagResponse> => {
-    return (await sendOpenQBankRequest<LearningFlagResponse>(
-        '/api/extension/flag-learning',
         {
             question_id: questionId?.trim() || questionData?.questionId?.trim() || '',
             question_data: buildQuestionDataPayload(questionData),
@@ -164,8 +144,6 @@ const inlineActionState: InlineActionState = {
     questionId: null,
     cardsPending: false,
     cardsDoneQuestionId: null,
-    flagPending: false,
-    flagDoneQuestionId: null,
     customAnkiEnabled: null,
     status: '',
     statusKind: 'idle',
@@ -1291,9 +1269,6 @@ const ensureInlineActionsRoot = () => {
             void handleInlineGenerateCards();
             return;
         }
-        if (action === 'flag') {
-            void handleInlineFlagQuestion();
-        }
     });
 
     return root;
@@ -1305,7 +1280,6 @@ const questionStateCache = new Map<string, {
     lockedCount: number;
     contentScope: 'full' | 'partial' | null;
     cardsDoneQuestionId: string | null;
-    flagDoneQuestionId: string | null;
     showPreview: boolean;
     activeCardIndex: number;
     revealedCardIndices: Set<number>;
@@ -1383,7 +1357,6 @@ const persistGeneratedCardsLocally = (
         lockedCount,
         contentScope: null,
         cardsDoneQuestionId: questionId,
-        flagDoneQuestionId: questionId,
         showPreview: true,
         activeCardIndex: inlineActionState.questionId === questionId ? inlineActionState.activeCardIndex : 0,
         revealedCardIndices: inlineActionState.questionId === questionId
@@ -1413,7 +1386,6 @@ const hydrateOpenQbankCorePreviewFromSession = (questionId: string): boolean => 
     inlineActionState.lockedCount = mem.lockedCount || 0;
     inlineActionState.contentScope = mem.contentScope;
     inlineActionState.cardsDoneQuestionId = questionId;
-    inlineActionState.flagDoneQuestionId = mem.flagDoneQuestionId ?? questionId;
     inlineActionState.showPreview = mem.showPreview !== false;
     inlineActionState.userOwnedPreview = Boolean(mem.userOwnedPreview);
     if (mem.addedCardIndices) {
@@ -1445,7 +1417,6 @@ const updateInlineQuestionState = (questionId: string | null) => {
             lockedCount: inlineActionState.lockedCount,
             contentScope: inlineActionState.contentScope,
             cardsDoneQuestionId: inlineActionState.cardsDoneQuestionId,
-            flagDoneQuestionId: inlineActionState.flagDoneQuestionId,
             showPreview: inlineActionState.showPreview,
             activeCardIndex: inlineActionState.activeCardIndex,
             revealedCardIndices: new Set(inlineActionState.revealedCardIndices),
@@ -1459,7 +1430,6 @@ const updateInlineQuestionState = (questionId: string | null) => {
     // Keep the pending flag if a poll is still running for the question we're switching to
     // (Rosh Review re-renders the explanation panel mid-extract and can briefly null the fingerprint).
     inlineActionState.cardsPending = Boolean(questionId && activeCardPolls.has(questionId));
-    inlineActionState.flagPending = false;
     inlineActionState.status = '';
     inlineActionState.statusKind = 'idle';
 
@@ -1470,7 +1440,6 @@ const updateInlineQuestionState = (questionId: string | null) => {
         inlineActionState.lockedCount = cached.lockedCount || 0;
         inlineActionState.contentScope = cached.contentScope;
         inlineActionState.cardsDoneQuestionId = cached.cardsDoneQuestionId;
-        inlineActionState.flagDoneQuestionId = cached.flagDoneQuestionId;
         inlineActionState.showPreview = cached.showPreview || inlineActionState.cardsPending;
         inlineActionState.activeCardIndex = cached.activeCardIndex;
         inlineActionState.revealedCardIndices = new Set(cached.revealedCardIndices);
@@ -1611,10 +1580,8 @@ const renderInlineActions = () => {
     root.classList.toggle('ocb-dark', isDarkSurface);
 
     const isHigherTier = inlineActionState.customAnkiEnabled === true;
-    const flagDoneForQuestion = inlineActionState.flagDoneQuestionId === inlineActionState.questionId;
 
     const cardsButton = root.querySelector<HTMLButtonElement>('[data-ocb-action="cards"]');
-    const flagButton = root.querySelector<HTMLButtonElement>('[data-ocb-action="flag"]');
     const status = root.querySelector<HTMLDivElement>('.ocb-status');
     const previewContainer = root.querySelector<HTMLDivElement>('.ocb-preview-container');
     const actionsDiv = root.querySelector<HTMLDivElement>('.ocb-actions');
@@ -1660,22 +1627,9 @@ const renderInlineActions = () => {
         }
     }
 
-    if (flagButton) {
-        if (isHigherTier) {
-            flagButton.hidden = true;
-            flagButton.style.setProperty('display', 'none', 'important');
-        } else {
-            flagButton.hidden = false;
-            flagButton.style.setProperty('display', 'inline-flex', 'important');
-            flagButton.disabled = inlineActionState.flagPending;
-            flagButton.innerHTML = inlineActionState.flagPending ? 'Adding...' : flagDoneForQuestion ? 'Added to Library' : 'Add to Library';
-        }
-    }
-
     if (actionsDiv) {
         const isCardsHidden = !cardsButton || cardsButton.hidden || cardsButton.style.display === 'none';
-        const isFlagHidden = !flagButton || flagButton.hidden || flagButton.style.display === 'none';
-        if (isCardsHidden && isFlagHidden) {
+        if (isCardsHidden) {
             actionsDiv.style.setProperty('display', 'none', 'important');
         } else {
             actionsDiv.style.removeProperty('display');
@@ -2137,7 +2091,6 @@ const applyGeneratedCards = (
     inlineActionState.lockedCount = meta?.lockedCount ?? inlineActionState.lockedCount ?? 0;
     inlineActionState.contentScope = meta?.contentScope ?? null;
     inlineActionState.cardsDoneQuestionId = questionId;
-    inlineActionState.flagDoneQuestionId = questionId;
     inlineActionState.cardsPending = false;
     inlineActionState.countdownText = null;
     inlineActionState.showPreview = true;
@@ -2352,7 +2305,6 @@ if (inlineActionState.questionId !== questionId) return;
 if (localCards) {
     inlineActionState.generatedCardsText = localCards;
     inlineActionState.cardsDoneQuestionId = questionId;
-    inlineActionState.flagDoneQuestionId = questionId;
     inlineActionState.showPreview = true;
     renderInlineActions();
     return;
@@ -2401,7 +2353,6 @@ if (applyCachedPreview && cachedCards) {
     inlineActionState.lockedCount = response?.locked_count ?? 0;
     inlineActionState.contentScope = response?.content_scope ?? null;
     inlineActionState.cardsDoneQuestionId = questionId;
-    inlineActionState.flagDoneQuestionId = questionId;
     inlineActionState.showPreview = true;
     inlineActionState.userOwnedPreview = Boolean(response?.user_owned);
     persistGeneratedCardsLocally(questionId, cachedCards, {
@@ -2469,7 +2420,6 @@ const handleInlineGenerateCards = async () => {
         if (localCards) {
             inlineActionState.generatedCardsText = localCards;
             inlineActionState.cardsDoneQuestionId = inlineActionState.questionId;
-            inlineActionState.flagDoneQuestionId = inlineActionState.questionId;
         }
     }
 
@@ -2539,35 +2489,6 @@ const handleInlineGenerateCards = async () => {
         inlineActionState.countdownStartedAt = null;
         inlineActionState.countdownText = null;
     } finally {
-        renderInlineActions();
-    }
-};
-
-const handleInlineFlagQuestion = async () => {
-    if (!inlineActionState.questionId || inlineActionState.flagPending) return;
-
-    inlineActionState.flagPending = true;
-    setInlineStatus('Adding question...', 'info');
-
-    try {
-        const questionData = await getQuestionContent();
-        if (!questionData?.questionId) {
-            throw new Error('No question found on this page.');
-        }
-
-        const result = await requestLearningFlag(questionData.questionId, questionData);
-        if (!result?.flagged) {
-            throw new Error('Question was not flagged.');
-        }
-
-        inlineActionState.flagDoneQuestionId = questionData.questionId;
-        setInlineStatus('Question added to Library.', 'success');
-    } catch (error) {
-        const rawMsg = error instanceof Error ? error.message : 'Failed to add question.';
-        const message = rawMsg.includes('Authentication required') ? 'Please sign in to openQbank via extension popup.' : rawMsg;
-        setInlineStatus(message, 'error');
-    } finally {
-        inlineActionState.flagPending = false;
         renderInlineActions();
     }
 };
@@ -2667,21 +2588,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             success: false,
             error: 'Retest generation from the extension is disabled. Generate new questions from openQbank.com/me.',
         });
-    }
-    if (request.action === 'RUN_FLAG_QUESTION') {
-        handleInlineFlagQuestion()
-            .then(() => {
-                sendResponse({
-                    success: true,
-                    message: 'Question added to Library.',
-                });
-            })
-            .catch((error) => {
-                sendResponse({
-                    success: false,
-                    error: error instanceof Error ? error.message : 'Failed to add question.',
-                });
-            });
     }
     return true;
 });
