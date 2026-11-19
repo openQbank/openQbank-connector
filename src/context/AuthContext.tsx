@@ -1,9 +1,9 @@
+import { OPENQBANK_API_ORIGIN } from '../apiOrigin';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const ANKI_PROMPT_MODE_KEY = 'openChromeBankAnkiPromptMode';
 export const OPENQBANK_PROD_ORIGIN = 'https://openqbank.com';
 export const OPENQBANK_PROD_WWW_ORIGIN = 'https://www.openqbank.com';
-export const OPENQBANK_FLY_API_ORIGIN = 'https://openqbank-api.fly.dev';
 export const OPENQBANK_LOCAL_ORIGIN = 'http://localhost:5000';
 export const OPENQBANK_ACTIVE_ORIGIN_KEY = 'openChromeBankActiveOrigin';
 export const OPENQBANK_ALLOW_LOCAL_FALLBACK_KEY = 'openChromeBankAllowLocalFallback';
@@ -11,7 +11,7 @@ export const AUTH_STATUS_STORAGE_KEY = 'ocb_extension_auth_status';
 
 export const getPreferredOrigins = async (): Promise<string[]> => {
     const dedupe = (origins: string[]) => Array.from(new Set(origins));
-    const defaultProdOrigins = () => [OPENQBANK_FLY_API_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_PROD_ORIGIN];
+    const defaultProdOrigins = () => [OPENQBANK_API_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_PROD_ORIGIN];
     try {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         const activeUrl = tabs[0]?.url || '';
@@ -20,7 +20,7 @@ export const getPreferredOrigins = async (): Promise<string[]> => {
         }
         if (/^https?:\/\/(?:[^/]+\.)?openqbank\.com\//i.test(activeUrl)) {
             const activeOrigin = new URL(activeUrl).origin;
-            return dedupe([OPENQBANK_FLY_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
+            return dedupe([OPENQBANK_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
         }
 
         const stored = await chrome.storage.local.get([
@@ -29,11 +29,11 @@ export const getPreferredOrigins = async (): Promise<string[]> => {
         ]);
         const activeOrigin = String(stored?.[OPENQBANK_ACTIVE_ORIGIN_KEY] || '').trim();
         const allowLocalFallback = Boolean(stored?.[OPENQBANK_ALLOW_LOCAL_FALLBACK_KEY]);
-        if (activeOrigin === OPENQBANK_FLY_API_ORIGIN || activeOrigin === OPENQBANK_PROD_ORIGIN || activeOrigin === OPENQBANK_PROD_WWW_ORIGIN) {
-            return dedupe([OPENQBANK_FLY_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
+        if (activeOrigin === OPENQBANK_API_ORIGIN || activeOrigin === OPENQBANK_PROD_ORIGIN || activeOrigin === OPENQBANK_PROD_WWW_ORIGIN) {
+            return dedupe([OPENQBANK_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
         }
         if (activeOrigin === OPENQBANK_LOCAL_ORIGIN && allowLocalFallback) {
-            return dedupe([OPENQBANK_LOCAL_ORIGIN, OPENQBANK_FLY_API_ORIGIN, ...defaultProdOrigins()]);
+            return dedupe([OPENQBANK_LOCAL_ORIGIN, OPENQBANK_API_ORIGIN, ...defaultProdOrigins()]);
         }
     } catch {
         // Fall through to default ordering.

@@ -1,9 +1,9 @@
+import { OPENQBANK_API_ORIGIN } from '../apiOrigin';
 import { BYOK_SCHEMA, BYOK_SYSTEM_PROMPT } from '../selection/byokPrompt';
 
 console.log('Background service worker started.');
 
 const OPENQBANK_LOCAL_ORIGIN = 'http://localhost:5000';
-const OPENQBANK_FLY_API_ORIGIN = 'https://openqbank-api.fly.dev';
 const OPENQBANK_PROD_ORIGIN = 'https://openqbank.com';
 const OPENQBANK_PROD_WWW_ORIGIN = 'https://www.openqbank.com';
 const OPENQBANK_ACTIVE_ORIGIN_KEY = 'openChromeBankActiveOrigin';
@@ -23,7 +23,7 @@ const _dedupeOrigins = (origins: string[]): string[] => {
 
 const _isSupportedOpenQBankOrigin = (origin: string): boolean => {
     return (
-        origin === OPENQBANK_FLY_API_ORIGIN
+        origin === OPENQBANK_API_ORIGIN
         || origin === OPENQBANK_LOCAL_ORIGIN
         || origin === OPENQBANK_PROD_ORIGIN
         || origin === OPENQBANK_PROD_WWW_ORIGIN
@@ -33,9 +33,9 @@ const _isSupportedOpenQBankOrigin = (origin: string): boolean => {
 const _isLocalOrigin = (origin: string): boolean => origin === OPENQBANK_LOCAL_ORIGIN;
 
 const _isProdOrigin = (origin: string): boolean =>
-    origin === OPENQBANK_FLY_API_ORIGIN || origin === OPENQBANK_PROD_ORIGIN || origin === OPENQBANK_PROD_WWW_ORIGIN;
+    origin === OPENQBANK_API_ORIGIN || origin === OPENQBANK_PROD_ORIGIN || origin === OPENQBANK_PROD_WWW_ORIGIN;
 
-const _defaultProdOrigins = (): string[] => [OPENQBANK_FLY_API_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_PROD_ORIGIN];
+const _defaultProdOrigins = (): string[] => [OPENQBANK_API_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_PROD_ORIGIN];
 
 const _allowLocalFallback = async (): Promise<boolean> => {
     try {
@@ -51,27 +51,27 @@ const preferredOriginsForSender = async (sender: chrome.runtime.MessageSender, p
 
     if (path.startsWith('/api/extension/')) {
         return _dedupeOrigins([
-            OPENQBANK_FLY_API_ORIGIN,
+            OPENQBANK_API_ORIGIN,
             ..._defaultProdOrigins(),
         ]);
     }
 
     if (/^https?:\/\/localhost:5000\//i.test(senderUrl)) {
-        return [OPENQBANK_LOCAL_ORIGIN, OPENQBANK_FLY_API_ORIGIN, OPENQBANK_PROD_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN];
+        return [OPENQBANK_LOCAL_ORIGIN, OPENQBANK_API_ORIGIN, OPENQBANK_PROD_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN];
     }
 
     if (/^https?:\/\/(?:[^/]+\.)?openqbank\.com\//i.test(senderUrl)) {
         try {
             const senderOrigin = new URL(senderUrl).origin;
             return _dedupeOrigins([
-                OPENQBANK_FLY_API_ORIGIN,
+                OPENQBANK_API_ORIGIN,
                 senderOrigin,
                 OPENQBANK_PROD_ORIGIN,
                 OPENQBANK_PROD_WWW_ORIGIN,
                 OPENQBANK_LOCAL_ORIGIN,
             ]);
         } catch {
-            return [OPENQBANK_FLY_API_ORIGIN, OPENQBANK_PROD_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_LOCAL_ORIGIN];
+            return [OPENQBANK_API_ORIGIN, OPENQBANK_PROD_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_LOCAL_ORIGIN];
         }
     }
 
@@ -83,10 +83,10 @@ const preferredOriginsForSender = async (sender: chrome.runtime.MessageSender, p
         const activeOrigin = String(stored?.[OPENQBANK_ACTIVE_ORIGIN_KEY] || '').trim();
         if (_isSupportedOpenQBankOrigin(activeOrigin)) {
             if (_isProdOrigin(activeOrigin)) {
-                return _dedupeOrigins([OPENQBANK_FLY_API_ORIGIN, activeOrigin, ..._defaultProdOrigins()]);
+                return _dedupeOrigins([OPENQBANK_API_ORIGIN, activeOrigin, ..._defaultProdOrigins()]);
             }
             if (_isLocalOrigin(activeOrigin) && allowLocalFallback) {
-                return _dedupeOrigins([activeOrigin, OPENQBANK_FLY_API_ORIGIN, ..._defaultProdOrigins()]);
+                return _dedupeOrigins([activeOrigin, OPENQBANK_API_ORIGIN, ..._defaultProdOrigins()]);
             }
         }
     } catch {

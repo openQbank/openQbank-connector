@@ -1,3 +1,4 @@
+import { OPENQBANK_API_ORIGIN } from './apiOrigin';
 import { useEffect, useState } from 'react';
 import { ArrowUpCircle, Check, Loader2, LogIn, LogOut } from 'lucide-react';
 import { AuthProvider, getPreferredOrigins, useAuth } from './context/AuthContext';
@@ -166,7 +167,7 @@ function PopupContent() {
     }
   }, [isDarkMode]);
 
-  const API_BASE = 'https://openqbank-api.fly.dev';
+  const API_BASE = OPENQBANK_API_ORIGIN;
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginCode, setLoginCode] = useState('');

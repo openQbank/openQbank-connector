@@ -40,7 +40,7 @@ Under the hood, the extension is built with:
 - **Frontend**: React 19, TypeScript, Tailwind CSS
 - **Icons & Markdown**: Lucide React, React Markdown
 - **Build System**: Vite (`vite.config.ts`, `vite.config.content.ts`, `vite.config.selection.ts`)
-- **Backend API**: `https://openqbank-api.fly.dev` (Fly.io API microservice)
+- **Backend API**: `https://api.openqbank.com`
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -56,8 +56,8 @@ Under the hood, the extension is built with:
                                │ Bearer Auth & Payloads
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│             openQbank Dedicated Fly API Server              │
-│               https://openqbank-api.fly.dev                 │
+│                     openQbank API                           │
+│                  https://api.openqbank.com                  │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                 ┌──────────────┴──────────────┐
