@@ -1,9 +1,4 @@
-type OpenQBankWorkerResponse = {
-    ok: boolean;
-    status?: number;
-    error?: string;
-    data?: unknown;
-};
+import { sendExtensionRequest } from './requestTransport';
 
 export const showUpdateRequiredModal = (minVersion?: string, upgradeUrl?: string) => {
     let modal = document.getElementById('ocb-update-required-modal');
@@ -64,35 +59,7 @@ export const sendOpenQBankRequest = async <T = void>(
     method: 'GET' | 'POST' = 'POST',
     timeoutMs?: number,
 ): Promise<T | null> => {
-    if (!chrome?.runtime?.id) {
-        throw new Error('Extension context invalidated. Please refresh the page.');
-    }
-
-    const response = await new Promise<OpenQBankWorkerResponse>((resolve, reject) => {
-        try {
-            chrome.runtime.sendMessage(
-                {
-                    type: 'openqbank_request',
-                    request: {
-                        path,
-                        method,
-                        body,
-                        timeoutMs,
-                    },
-                },
-                (messageResponse: OpenQBankWorkerResponse) => {
-                    if (chrome.runtime.lastError) {
-                        reject(new Error(chrome.runtime.lastError.message || 'Request failed.'));
-                        return;
-                    }
-
-                    resolve(messageResponse);
-                },
-            );
-        } catch (error) {
-            reject(error instanceof Error ? error : new Error(String(error)));
-        }
-    });
+    const response = await sendExtensionRequest({ path, method, body, timeoutMs });
 
     if (!response?.ok) {
         const dataObj = response?.data && typeof response.data === 'object'

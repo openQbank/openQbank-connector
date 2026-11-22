@@ -1,45 +1,9 @@
-import { OPENQBANK_API_ORIGIN } from '../apiOrigin';
+import { OPENQBANK_ACTIVE_ORIGIN_KEY } from '../apiOrigin';
+import { getPreferredOrigins, isOpenQbankUrl } from '../origins';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const ANKI_PROMPT_MODE_KEY = 'openChromeBankAnkiPromptMode';
-export const OPENQBANK_PROD_ORIGIN = 'https://openqbank.com';
-export const OPENQBANK_PROD_WWW_ORIGIN = 'https://www.openqbank.com';
-export const OPENQBANK_LOCAL_ORIGIN = 'http://localhost:5000';
-export const OPENQBANK_ACTIVE_ORIGIN_KEY = 'openChromeBankActiveOrigin';
-export const OPENQBANK_ALLOW_LOCAL_FALLBACK_KEY = 'openChromeBankAllowLocalFallback';
-export const AUTH_STATUS_STORAGE_KEY = 'ocb_extension_auth_status';
-
-export const getPreferredOrigins = async (): Promise<string[]> => {
-    const dedupe = (origins: string[]) => Array.from(new Set(origins));
-    const defaultProdOrigins = () => [OPENQBANK_API_ORIGIN, OPENQBANK_PROD_WWW_ORIGIN, OPENQBANK_PROD_ORIGIN];
-    try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        const activeUrl = tabs[0]?.url || '';
-        if (/^https?:\/\/localhost:5000\//i.test(activeUrl)) {
-            return [OPENQBANK_LOCAL_ORIGIN, ...defaultProdOrigins()];
-        }
-        if (/^https?:\/\/(?:[^/]+\.)?openqbank\.com\//i.test(activeUrl)) {
-            const activeOrigin = new URL(activeUrl).origin;
-            return dedupe([OPENQBANK_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
-        }
-
-        const stored = await chrome.storage.local.get([
-            OPENQBANK_ACTIVE_ORIGIN_KEY,
-            OPENQBANK_ALLOW_LOCAL_FALLBACK_KEY,
-        ]);
-        const activeOrigin = String(stored?.[OPENQBANK_ACTIVE_ORIGIN_KEY] || '').trim();
-        const allowLocalFallback = Boolean(stored?.[OPENQBANK_ALLOW_LOCAL_FALLBACK_KEY]);
-        if (activeOrigin === OPENQBANK_API_ORIGIN || activeOrigin === OPENQBANK_PROD_ORIGIN || activeOrigin === OPENQBANK_PROD_WWW_ORIGIN) {
-            return dedupe([OPENQBANK_API_ORIGIN, activeOrigin, ...defaultProdOrigins()]);
-        }
-        if (activeOrigin === OPENQBANK_LOCAL_ORIGIN && allowLocalFallback) {
-            return dedupe([OPENQBANK_LOCAL_ORIGIN, OPENQBANK_API_ORIGIN, ...defaultProdOrigins()]);
-        }
-    } catch {
-        // Fall through to default ordering.
-    }
-    return defaultProdOrigins();
-};
+const AUTH_STATUS_STORAGE_KEY = 'ocb_extension_auth_status';
 
 interface AuthState {
     authenticated: boolean;
@@ -239,16 +203,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         if (typeof chrome === 'undefined' || !chrome.tabs?.onUpdated || !chrome.tabs?.onActivated) return;
-
-        const isOpenQbankUrl = (url?: string) => {
-            if (!url) return false;
-            try {
-                const host = new URL(url).hostname.toLowerCase();
-                return host === 'localhost' || host === 'openqbank.com' || host.endsWith('.openqbank.com');
-            } catch {
-                return false;
-            }
-        };
 
         let timerId: number | null = null;
         const queueStatusCheck = (hard = false) => {

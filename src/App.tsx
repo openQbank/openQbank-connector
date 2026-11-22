@@ -1,7 +1,8 @@
 import { OPENQBANK_API_ORIGIN } from './apiOrigin';
 import { useEffect, useState } from 'react';
 import { ArrowUpCircle, Check, Loader2, LogIn, LogOut } from 'lucide-react';
-import { AuthProvider, getPreferredOrigins, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { getPreferredOrigins } from './origins';
 import {
     isHyGuruAccount,
     isOpenQbankPro,
