@@ -1,4 +1,4 @@
-export type OpenQBankWorkerResponse = {
+type OpenQBankWorkerResponse = {
     ok: boolean;
     status?: number;
     error?: string;

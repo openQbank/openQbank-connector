@@ -1,5 +1,5 @@
-export const CARD_GENERATION_TIMEOUT_MS = 70000;
-export const CARD_POLL_INTERVAL_MS = 5000;
+const CARD_GENERATION_TIMEOUT_MS = 70000;
+const CARD_POLL_INTERVAL_MS = 5000;
 export const CARD_POLL_CHECK_OFFSETS_MS = Array.from(
     { length: Math.ceil(CARD_GENERATION_TIMEOUT_MS / CARD_POLL_INTERVAL_MS) },
     (_, index) => (index + 1) * CARD_POLL_INTERVAL_MS,
@@ -79,14 +79,3 @@ export const isHyGuruAccount = (userType: string | null | undefined, userTier: s
     const tier = (userTier || '').trim().toLowerCase();
     return type === 'hyguru' || tier.startsWith('hyguru-');
 };
-
-export const nextPollDelayMs = (pollStartedAt: number, now: number = Date.now()): number | null => {
-    for (const offset of CARD_POLL_CHECK_OFFSETS_MS) {
-        const target = pollStartedAt + offset;
-        if (now < target) return target - now;
-    }
-    return null;
-};
-
-export const shouldGiveUpPolling = (pollStartedAt: number, now: number = Date.now()): boolean =>
-    now >= pollStartedAt + CARD_GENERATION_TIMEOUT_MS;

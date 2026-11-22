@@ -14,7 +14,7 @@
 import { OPENQBANK_INJECTED_TOKEN_CSS } from './openqbankTokens';
 import { DISCLAIMER_TEXT } from '../disclaimer';
 
-export interface QuestionDataLike {
+interface QuestionDataLike {
   questionId?: string;
   system?: string;
   subject?: string;
@@ -343,7 +343,7 @@ export const updateCustomCardFabVisibility = (
   ensureCustomCardFab(options);
 };
 
-export const ensureCustomCardFab = (options: CustomCardFabOptions) => {
+const ensureCustomCardFab = (options: CustomCardFabOptions) => {
   if (typeof options.keyboardShortcutsEnabled === 'boolean') {
     keyboardShortcutsEnabled = options.keyboardShortcutsEnabled;
   }
@@ -2041,7 +2041,7 @@ export async function openCustomCardDrafts(options: CustomCardFabOptions, drafts
   await openCustomCardModal(options, first);
 }
 
-export const openCustomCardModal = async (
+const openCustomCardModal = async (
   options: CustomCardFabOptions,
   prefill: CustomCardPrefill,
 ) => {

@@ -6,8 +6,6 @@ import {
     isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankAdmin,
-    nextPollDelayMs,
-    shouldGiveUpPolling,
     shouldShowOpenQbankGenerateButton,
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
@@ -42,9 +40,7 @@ describe('tierAccess', () => {
 
     it('poll timing matches generation timeout window', () => {
         expect(CARD_POLL_CHECK_OFFSETS_MS[0]).toBe(5000);
-        const start = 1_000_000;
-        expect(nextPollDelayMs(start, start + 1000)).toBe(4000);
-        expect(shouldGiveUpPolling(start, start + 70000)).toBe(true);
+        expect(CARD_POLL_CHECK_OFFSETS_MS.at(-1)).toBe(70000);
     });
 
     it('progress curve reaches ~80% at first poll', () => {
