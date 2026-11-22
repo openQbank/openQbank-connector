@@ -13,8 +13,30 @@ if (window.__oqbSelectionLoaded) {
 } else {
     window.__oqbSelectionLoaded = true;
 
-    if (QBANK_HOSTS.some((re) => re.test(window.location.hostname))) {
-        installSelectionButton();
+    const isTrustedHost = QBANK_HOSTS.some((re) => re.test(window.location.hostname));
+    let installed = false;
+
+    const checkAndInstall = () => {
+        if (installed) return;
+        chrome.storage?.local?.get(['trusted_sites_only'], (res) => {
+            const trustedSitesOnly = res?.trusted_sites_only !== false;
+            if ((isTrustedHost || !trustedSitesOnly) && !installed) {
+                installed = true;
+                installSelectionButton();
+            }
+        });
+    };
+
+    checkAndInstall();
+
+    try {
+        chrome.storage?.onChanged?.addListener((changes, area) => {
+            if (area === 'local' && changes.trusted_sites_only) {
+                checkAndInstall();
+            }
+        });
+    } catch {
+        // Ignore API unavailable
     }
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

@@ -1,0 +1,185 @@
+name: Package Safari Connector (.dmg)
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "Commit checked before packaging"
+        required: false
+
+concurrency:
+  group: safari-connector-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read release version
+        id: version
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          tag=$(node -e 'const pkg = JSON.parse(require("fs").readFileSync("package.json")); console.log("v" + pkg.version);')
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Dispatch Safari releases from main."
+            exit 1
+          fi
+          if [[ -n "$EXPECTED_SHA" && "$GITHUB_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "::error::Main changed before dispatch. Review the release commit and dispatch again."
+            exit 1
+          fi
+          if git ls-remote --exit-code --refs origin "refs/tags/$tag" >/dev/null; then
+            echo "::error::Tag $tag already exists. Bump package.json before releasing."
+            exit 1
+          else
+            status=$?
+            if [[ "$status" != 2 ]]; then exit "$status"; fi
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    name: Build Safari Extension & Package DMG (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Build Web Extension Bundles
+        run: npm run build:web
+
+      - name: Import macOS Code Signing Certificate
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE" ]; then
+            echo "::warning::MACOS_CERTIFICATE not set. macOS build will be packaged unsigned."
+            exit 0
+          fi
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          KEYCHAIN_PWD=$(uuidgen)
+
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+
+          echo "$MACOS_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          echo "macOS Developer ID certificate successfully imported into temporary keychain."
+
+      - name: Setup Apple Notarization Key
+        env:
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+        run: |
+          if [ -n "$APPLE_API_KEY_BASE64" ]; then
+            echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/apple_api_key.p8"
+            echo "Apple notarization API key written to temporary directory."
+          fi
+
+      - name: Build Safari Extension App
+        run: npm run build:safari
+
+      - name: Package, Sign, and Notarize DMG
+        env:
+          REQUIRE_SAFARI: "true"
+          REQUIRE_NOTARIZATION: "false"
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_PATH: ${{ runner.temp }}/apple_api_key.p8
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'YX9F55Z3Q8' }}
+        run: npm run pack:dmg
+
+      - name: Clean up macOS Keychain
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/build.keychain" ]; then
+            security delete-keychain "$RUNNER_TEMP/build.keychain" || true
+          fi
+          if [ -f "$RUNNER_TEMP/apple_api_key.p8" ]; then
+            rm -f "$RUNNER_TEMP/apple_api_key.p8"
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openQbank-connector-dmg
+          path: /Users/runner/Downloads/openQbank-connector.dmg
+          if-no-files-found: error
+
+  release:
+    name: Upload to Cloudflare R2 & Release
+    needs: [version, build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Built Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openQbank-connector-dmg
+          path: release-artifacts
+
+      - name: Install R2 upload tooling
+        run: python3 -m pip install --disable-pip-version-check awscli
+
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME || 'openqbank' }}
+        run: |
+          missing=()
+          [ -z "$AWS_ACCESS_KEY_ID" ] && missing+=(R2_ACCESS_KEY_ID)
+          [ -z "$AWS_SECRET_ACCESS_KEY" ] && missing+=(R2_SECRET_ACCESS_KEY)
+          [ -z "$R2_ACCOUNT_ID" ] && missing+=(R2_ACCOUNT_ID)
+          [ -z "$R2_BUCKET_NAME" ] && missing+=(R2_BUCKET_NAME)
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Missing required Cloudflare R2 secrets: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          echo "Uploading openQbank-connector.dmg to Cloudflare R2..."
+          aws s3 cp release-artifacts/openQbank-connector.dmg "s3://${R2_BUCKET_NAME}/openQbank-connector.dmg" --endpoint-url "$R2_ENDPOINT" --cache-control "no-cache"
+
+          echo "Verifying Cloudflare R2 upload..."
+          aws s3 cp "s3://${R2_BUCKET_NAME}/openQbank-connector.dmg" downloaded-verify.dmg --endpoint-url "$R2_ENDPOINT"
+          cmp release-artifacts/openQbank-connector.dmg downloaded-verify.dmg
+          rm -f downloaded-verify.dmg
+          echo "Cloudflare R2 Safari connector DMG deployment verified."
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            release-artifacts/openQbank-connector.dmg
+          draft: false
+          prerelease: false
+          generate_release_notes: true

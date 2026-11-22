@@ -1,10 +1,11 @@
+import { toPrefill, type SelectionDraft, type SelectionKind } from './byokPrompt';
 import { OPENQBANK_INJECTED_TOKEN_CSS } from '../content/openqbankTokens';
 import { isOpenQbankPro, isHyGuruAccount, calculateCardPollProgress } from '../content/tierAccess';
 import { sendOpenQBankRequest } from '../shared/request';
 import { buildQuestionDataPayload, getQuestionContent, getQuestionFingerprint } from '@extract';
 import {
     type CustomCardFabOptions,
-    openCustomCardModal,
+    openCustomCardDrafts,
 } from '../content/customCardFab';
 import { CANONICAL_ORGAN_SYSTEMS, resolveOrganSystem } from '../shared/organSystems';
 
@@ -73,6 +74,7 @@ export const openSelectionPanel = (selectionText: string): void => {
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 6px; }
+        select { min-height: 42px; padding: 0 10px; border: 1px solid var(--ocb-border); border-radius: 12px; color: var(--ocb-text); background: var(--ocb-bg-surface); }
         textarea { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; resize: vertical; min-height: 72px; }
         .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
         .btn-primary {
@@ -150,6 +152,11 @@ export const openSelectionPanel = (selectionText: string): void => {
                 <textarea id="oqb-sel-text"></textarea>
                 <label for="oqb-sel-ground" style="margin-top:12px;">What did I get wrong? (optional)</label>
                 <textarea id="oqb-sel-ground" rows="2" placeholder="Optional note"></textarea>
+                <label for="oqb-sel-kind" style="margin-top:12px;">Card type</label>
+                <select id="oqb-sel-kind">
+                    <option value="default">High Yield</option>
+                    <option value="vignette">Vignette</option>
+                </select>
                 <div class="actions">
                     <button type="button" class="btn-primary" id="oqb-sel-generate">Create card</button>
                     <button type="button" class="btn-ghost" id="oqb-sel-close">Close</button>
@@ -170,6 +177,7 @@ export const openSelectionPanel = (selectionText: string): void => {
     setTimeout(() => selTa?.focus(), 0);
 
     const close = () => {
+        window.removeEventListener('keydown', onKey, true);
         host.remove();
     };
 
@@ -224,6 +232,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                 if (!genBtn || genBtn.disabled) return;
                 const selection = (selTa?.value || '').trim();
                 const grounding = (groundTa?.value || '').trim();
+                const cardType: SelectionKind = shadow.querySelector<HTMLSelectElement>('#oqb-sel-kind')?.value === 'vignette' ? 'vignette' : 'default';
                 if (selection.length < 3) {
                     setStatus('Selection is too short.');
                     return;
@@ -264,21 +273,13 @@ export const openSelectionPanel = (selectionText: string): void => {
                         const qData = await getQuestionContent();
                         const data = await sendOpenQBankRequest<{
                             success?: boolean;
-                            card?: {
-                                card_type: 'cloze' | 'basic' | 'sequential';
-                                front: string;
-                                back?: string;
-                                notes?: string;
-                                organ_system?: string;
-                                subject?: string;
-                                topic?: string;
-                                steps?: { label: string; value: string }[];
-                            };
+                            cards?: SelectionDraft[];
                             error?: string;
                         }>(
                             '/api/extension/selection-card',
                             {
                                 selection,
+                                card_type: cardType,
                                 grounding,
                                 question_id: fp?.questionId,
                                 platform: fp?.platform || 'Web',
@@ -288,26 +289,16 @@ export const openSelectionPanel = (selectionText: string): void => {
                             'POST',
                             60000,
                         );
-                        if (!data?.success || !data.card) {
+                        if (!data?.success || !data.cards?.length) {
                             resetBtn(data?.error || 'Generation failed.');
                             return;
                         }
                         stopTicker();
+                        if (!host.isConnected) return;
                         genBtn.style.setProperty('--ocb-progress', '100%');
                         close();
-                        window.removeEventListener('keydown', onKey, true);
                         const opts = fabOptions ?? buildFabOptions(status);
-                        const cardFront = data.card.front || (data.card as any).cloze || (data.card as any).cloze_text || (data.card as any).text || '';
-                        await openCustomCardModal(opts, {
-                            cardType: 'cloze',
-                            front: cardFront,
-                            back: '',
-                            notes: data.card.notes || grounding || undefined,
-                            organSystem: data.card.organ_system,
-                            subject: data.card.subject,
-                            topic: data.card.topic,
-                            steps: data.card.steps,
-                        });
+                        await openCustomCardDrafts(opts, data.cards.map(toPrefill));
                         return;
                     }
                     if (!hasByok) {
@@ -318,22 +309,16 @@ export const openSelectionPanel = (selectionText: string): void => {
                         type: 'byok_generate',
                         selection,
                         grounding,
-                    }) as { ok?: boolean; error?: string; card?: { card_type: 'cloze'; front: string; back: string; notes?: string } };
-                    if (!byok?.ok || !byok.card) {
+                        cardType,
+                    }) as { ok?: boolean; error?: string; cards?: SelectionDraft[] };
+                    if (!byok?.ok || !byok.cards?.length) {
                         resetBtn(byok?.error || 'OpenAI generation failed.');
                         return;
                     }
                     stopTicker();
-                    genBtn.style.setProperty('--ocb-progress', '100%');
+                    if (!host.isConnected) return;
                     close();
-                    window.removeEventListener('keydown', onKey, true);
-                    const opts = fabOptions ?? buildFabOptions(status);
-                    await openCustomCardModal(opts, {
-                        cardType: 'cloze',
-                        front: byok.card.front,
-                        back: '',
-                        notes: byok.card.notes || grounding || undefined,
-                    });
+                    await openCustomCardDrafts(fabOptions ?? buildFabOptions(status), byok.cards.map(toPrefill));
                 } catch (err) {
                     resetBtn(err instanceof Error ? err.message : 'Request failed.');
                 }

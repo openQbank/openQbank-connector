@@ -17,6 +17,7 @@ const BTN_ACTION =
   'inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#fcd34d] bg-[#ffe5b4] px-3 text-xs font-bold uppercase tracking-wider text-[#1f2937] transition hover:bg-[#ffdab9] disabled:cursor-not-allowed disabled:opacity-50';
 
 const CUSTOM_CARD_FAB_STORAGE_KEY = 'custom_card_fab_enabled';
+const TRUSTED_SITES_ONLY_STORAGE_KEY = 'trusted_sites_only';
 const AI_FLASHCARDS_STORAGE_KEY = 'ai_flashcards_enabled';
 const KEYBOARD_SHORTCUTS_STORAGE = 'keyboard_shortcuts_enabled';
 const BYOK_KEY_STORAGE = 'oqb_byok_openai_key';
@@ -35,7 +36,6 @@ function PopupContent() {
     tier,
     user_type: userType,
     exam_mode: initialExamMode,
-    anki_prompt_mode: initialPromptMode,
     upgrade_required: upgradeRequired,
     min_version: minVersion,
     upgrade_url: upgradeUrl,
@@ -50,7 +50,7 @@ function PopupContent() {
   const tierPillClassName = 'border border-amber-200 bg-[#ffe5b4] text-[#1f2937] dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
 
   const [examMode, setExamMode] = useState<string>(initialExamMode || 'Step 1');
-  const [promptMode, setPromptMode] = useState<'default' | 'vignette'>(initialPromptMode || 'default');
+  const [trustedSitesOnly, setTrustedSitesOnly] = useState<boolean>(true);
   const [aiFlashcardsEnabled, setAiFlashcardsEnabled] = useState<boolean>(true);
   const [keyboardShortcutsEnabled, setKeyboardShortcutsEnabled] = useState<boolean>(true);
   const [customCardFabPrefLoaded, setCustomCardFabPrefLoaded] = useState(false);
@@ -122,11 +122,21 @@ function PopupContent() {
     }
   };
 
+  const toggleTrustedSitesOnly = (enabled: boolean) => {
+    setTrustedSitesOnly(enabled);
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      void chrome.storage.local.set({ [TRUSTED_SITES_ONLY_STORAGE_KEY]: enabled });
+    }
+  };
+
   useEffect(() => {
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-      chrome.storage.local.get([AI_FLASHCARDS_STORAGE_KEY], (res) => {
+      chrome.storage.local.get([AI_FLASHCARDS_STORAGE_KEY, TRUSTED_SITES_ONLY_STORAGE_KEY], (res) => {
         if (res && typeof res[AI_FLASHCARDS_STORAGE_KEY] === 'boolean') {
           setAiFlashcardsEnabled(res[AI_FLASHCARDS_STORAGE_KEY]);
+        }
+        if (res && typeof res[TRUSTED_SITES_ONLY_STORAGE_KEY] === 'boolean') {
+          setTrustedSitesOnly(res[TRUSTED_SITES_ONLY_STORAGE_KEY]);
         }
         setCustomCardFabPrefLoaded(true);
       });
@@ -137,8 +147,7 @@ function PopupContent() {
 
   useEffect(() => {
     if (initialExamMode) setExamMode(initialExamMode);
-    if (initialPromptMode) setPromptMode(initialPromptMode);
-  }, [initialExamMode, initialPromptMode]);
+  }, [initialExamMode]);
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -283,7 +292,6 @@ function PopupContent() {
             signal: AbortSignal.timeout(8000),
             body: JSON.stringify({
               exam_mode: examMode,
-              anki_prompt_mode: promptMode,
             }),
           });
           data = await attempt.json().catch(() => ({}));
@@ -502,28 +510,6 @@ function PopupContent() {
         </div>
 
         <div className="space-y-3.5 text-left">
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
-                Flashcard Prompt Mode
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPromptMode('default')}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${promptMode === 'default' ? 'border-[#fcd34d] bg-[#ffe5b4] text-[#1f2937] shadow-sm' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                  Standard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPromptMode('vignette')}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition ${promptMode === 'vignette' ? 'border-[#fcd34d] bg-[#ffe5b4] text-[#1f2937] shadow-sm' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                  Vignette
-                </button>
-              </div>
-            </div>
-
             {isOpenQbankUser && customCardFabPrefLoaded && (
               <div className="pt-1">
                 <div className="flex items-center justify-between">
@@ -544,6 +530,37 @@ function PopupContent() {
                   >
                     <span
                       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${aiFlashcardsEnabled ? 'translate-x-5' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isOpenQbankUser && customCardFabPrefLoaded && (
+              <div className="pt-1">
+                <div className="flex items-center justify-between">
+                  <div className="pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Trusted Sites Only
+                      </label>
+                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        Beta
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      Restrict card generation and the floating manual button to detected question bank platforms. Turn off to enable on all websites.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleTrustedSitesOnly(!trustedSitesOnly)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${trustedSitesOnly ? 'bg-[#ffe5b4]' : 'bg-slate-200 dark:bg-slate-700'}`}
+                    role="switch"
+                    aria-checked={trustedSitesOnly}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white dark:bg-slate-900 shadow-sm ring-0 transition duration-200 ease-in-out ${trustedSitesOnly ? 'translate-x-5' : 'translate-x-0'}`}
                     />
                   </button>
                 </div>

@@ -1,5 +1,5 @@
 import { OPENQBANK_API_ORIGIN } from '../apiOrigin';
-import { BYOK_SCHEMA, BYOK_SYSTEM_PROMPT } from '../selection/byokPrompt';
+import { BYOK_PROMPTS, type SelectionDraft, type SelectionKind } from '../selection/byokPrompt';
 
 console.log('Background service worker started.');
 
@@ -257,7 +257,7 @@ const handleOpenQBankRequest = async (request: OpenQBankRequest, origins: string
     };
 };
 
-const handleByokGenerate = async (selection: string, grounding: string) => {
+const handleByokGenerate = async (selection: string, grounding: string, kind: SelectionKind) => {
     const stored = await chrome.storage.local.get([
         'oqb_byok_openai_key',
         'oqb_byok_model',
@@ -277,15 +277,14 @@ const handleByokGenerate = async (selection: string, grounding: string) => {
         const requestBody: Record<string, unknown> = {
             model,
             messages: [
-                { role: 'system', content: BYOK_SYSTEM_PROMPT },
+                { role: 'system', content: BYOK_PROMPTS[kind] },
                 {
                     role: 'user',
                     content: `SELECTION:\n${selection}\n\nWHAT_I_GOT_WRONG:\n${grounding || 'none'}`,
                 },
             ],
             response_format: {
-                type: 'json_schema',
-                json_schema: { name: 'flashcard', strict: true, schema: BYOK_SCHEMA },
+                type: 'json_object',
             },
             service_tier: serviceTierValue,
             reasoning_effort: thinkingLevel,
@@ -349,14 +348,23 @@ const handleByokGenerate = async (selection: string, grounding: string) => {
         if (!content) {
             return { ok: false, error: 'OpenAI returned an empty response.' };
         }
-        const parsed = JSON.parse(content) as { cloze: string; notes?: string };
-        const card = {
-            card_type: 'cloze' as const,
-            front: (parsed.cloze || '').trim(),
-            back: '',
-            notes: (parsed.notes || '').trim(),
-        };
-        return { ok: true, card };
+        const { cards } = JSON.parse(content) as { cards?: SelectionDraft[] };
+        if (!Array.isArray(cards) || !cards.length || cards.length > (kind === 'vignette' ? 1 : 2)
+            || cards.some((card) => !card || typeof card.front !== 'string' || !card.front.trim()
+                || (kind === 'vignette'
+                    ? !Array.isArray(card.steps) || card.steps.length < 2 || card.steps.length > 12
+                        || card.steps.some((step) => !step || typeof step.label !== 'string' || !step.label.trim()
+                            || typeof step.value !== 'string' || !step.value.trim())
+                    : !/\{\{c\d+::.+?\}\}/s.test(card.front)))) {
+            return { ok: false, error: 'OpenAI did not return a usable draft. Try again.' };
+        }
+        const cardType = kind === 'vignette' ? 'sequential' : 'cloze';
+        return { ok: true, cards: cards.map((card) => ({
+            card_type: cardType,
+            front: card.front.trim(),
+            notes: typeof card.notes === 'string' ? card.notes.trim() : '',
+            steps: kind === 'vignette' ? card.steps : undefined,
+        })) };
     } catch (error) {
         return {
             ok: false,
@@ -370,7 +378,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         (async () => {
             const selection = String(message.selection || '').trim();
             const grounding = String(message.grounding || '').trim();
-            sendResponse(await handleByokGenerate(selection, grounding));
+            sendResponse(await handleByokGenerate(selection, grounding, message.cardType === 'vignette' ? 'vignette' : 'default'));
         })();
         return true;
     }

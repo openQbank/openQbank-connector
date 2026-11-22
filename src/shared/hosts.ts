@@ -16,4 +16,5 @@ export const QBANK_HOSTS: readonly RegExp[] = [
     /\.usmlefighter\.com$/i,
     /^brivona\.github\.io$/i,
     /^localhost$/i,
+    /(^|\.)127\.0\.0\.1$/i,
 ];

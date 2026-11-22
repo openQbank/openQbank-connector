@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "openQbank Connector",
-    "version": "14.1.5",
+    "version": "14.1.7",
     "description": "Turn anything into targeted flashcards. Free and open-source.",
     "permissions": [
         "activeTab",
@@ -14,22 +14,7 @@
     },
     "host_permissions": [
         "https://api.openai.com/*",
-        "*://*.openqbank.com/*",
-        "*://*.starttest.com/*",
-        "*://uworld.com/*",
-        "*://*.uworld.com/*",
-        "*://amboss.com/*",
-        "*://*.amboss.com/*",
-        "*://truelearn.com/*",
-        "*://*.truelearn.com/*",
-        "*://blueprintprep.com/*",
-        "*://*.blueprintprep.com/*",
-        "*://app.roshreview.com/*",
-        "*://*.roshreview.com/*",
-        "*://usmlefighter.com/*",
-        "*://*.usmlefighter.com/*",
-        "*://brivona.github.io/*",
-        "http://localhost:5000/*"
+        "<all_urls>"
     ],
     "action": {
         "default_title": "openQbank Connector",
@@ -43,22 +28,7 @@
     "content_scripts": [
         {
             "matches": [
-                "*://*.openqbank.com/*",
-                "*://*.starttest.com/*",
-                "*://uworld.com/*",
-                "*://*.uworld.com/*",
-                "*://amboss.com/*",
-                "*://*.amboss.com/*",
-                "*://truelearn.com/*",
-                "*://*.truelearn.com/*",
-                "*://blueprintprep.com/*",
-                "*://*.blueprintprep.com/*",
-                "*://app.roshreview.com/*",
-                "*://*.roshreview.com/*",
-                "*://usmlefighter.com/*",
-                "*://*.usmlefighter.com/*",
-                "*://brivona.github.io/*",
-                "http://localhost:5000/*"
+                "<all_urls>"
             ],
             "js": [
                 "content.js"
@@ -68,22 +38,7 @@
         },
         {
             "matches": [
-                "*://*.openqbank.com/*",
-                "*://*.starttest.com/*",
-                "*://uworld.com/*",
-                "*://*.uworld.com/*",
-                "*://amboss.com/*",
-                "*://*.amboss.com/*",
-                "*://truelearn.com/*",
-                "*://*.truelearn.com/*",
-                "*://blueprintprep.com/*",
-                "*://*.blueprintprep.com/*",
-                "*://app.roshreview.com/*",
-                "*://*.roshreview.com/*",
-                "*://usmlefighter.com/*",
-                "*://*.usmlefighter.com/*",
-                "*://brivona.github.io/*",
-                "http://localhost:5000/*"
+                "<all_urls>"
             ],
             "js": [
                 "selection.js"

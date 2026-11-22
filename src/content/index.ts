@@ -18,6 +18,7 @@ import {
 } from './customCardFab';
 import { OPENQBANK_INJECTED_TOKEN_CSS } from './openqbankTokens';
 import { DISCLAIMER_TEXT } from '../disclaimer';
+import { QBANK_HOSTS } from '../shared/hosts';
 
 import type { QuestionData } from '@extract';
 import {
@@ -57,6 +58,7 @@ interface InlineActionState {
     customCardFabEnabled?: boolean;
     aiFlashcardsEnabled?: boolean;
     keyboardShortcutsEnabled?: boolean;
+    trustedSitesOnly?: boolean;
     userOwnedPreview?: boolean;
     upgradeRequired?: boolean;
     minVersion?: string;
@@ -97,6 +99,7 @@ const requestGenerateCards = async (
         {
             question_id: questionId?.trim() || questionData?.questionId?.trim() || '',
             question_data: buildQuestionDataPayload(questionData),
+            all_card_types: true,
         },
         true,
     )) || {};
@@ -120,12 +123,15 @@ const requestAddToLibrary = async (
     questionId: string,
     cardIndex?: number,
     questionData?: QuestionData | null,
+    card?: AnkiCard,
 ) => {
     return await sendOpenQBankRequest<{ success: boolean; cards_count?: number }>(
         '/api/extension/add-to-library',
         {
             question_id: questionId.trim(),
             card_index: cardIndex != null ? cardIndex : undefined,
+            card_ref: card?.cardRef,
+            revision: card?.revision,
             question_data: buildQuestionDataPayload(questionData),
         },
         true,
@@ -139,15 +145,19 @@ const requestReportCard = async (payload: {
     issues?: string[];
     comment?: string;
     platform?: string;
+    card?: AnkiCard;
     cardFront?: string;
     cardBack?: string;
     topic?: string;
 }) => {
-    return await sendOpenQBankRequest<{ success: boolean }>(
+    return await sendOpenQBankRequest<{ success?: boolean; reported?: boolean }>(
         '/api/extension/report-card',
         {
             question_id: payload.questionId.trim(),
             card_index: payload.cardIndex,
+            card_ref: payload.card?.cardRef,
+            revision: payload.card?.revision,
+            question_data: buildQuestionDataPayload(await getQuestionContent()),
             rating: payload.rating || 'needs_work',
             issues: payload.issues || [],
             feedback_text: payload.comment || '',
@@ -1152,23 +1162,36 @@ const openReportCardModal = (cardIndex: number, triggerBtn?: HTMLElement) => {
     });
 
     const submitBtn = modal.querySelector<HTMLButtonElement>('#ocb-report-submit-btn');
+    const reportError = document.createElement('p');
+    reportError.setAttribute('role', 'alert');
+    submitBtn?.parentElement?.before(reportError);
+    const showError = (message: string) => {
+        reportError.textContent = message;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Report';
+        }
+    };
+    const questionId = inlineActionState.questionId;
     submitBtn?.addEventListener('click', () => {
-        if (!inlineActionState.questionId) return;
+        if (!questionId || questionId !== inlineActionState.questionId) return;
+        reportError.textContent = '';
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
 
         const comment = (modal?.querySelector<HTMLTextAreaElement>('#ocb-report-comments')?.value || '').trim();
         void requestReportCard({
-            questionId: inlineActionState.questionId,
+            questionId,
             cardIndex,
+            card: targetCard,
             rating: currentRating,
             issues: Array.from(selectedIssues),
             comment,
-            cardFront: targetCard?.front || '',
+            cardFront: targetCard?.clozeText || targetCard?.front || '',
             cardBack: targetCard?.back || '',
             topic: targetCard?.organSystem || '',
         }).then((res) => {
-            if (res?.success) {
+            if (res?.reported || res?.success) {
                 if (triggerBtn) {
                     triggerBtn.classList.add('is-reported');
                     triggerBtn.setAttribute('title', 'Reported');
@@ -1178,12 +1201,10 @@ const openReportCardModal = (cardIndex: number, triggerBtn?: HTMLElement) => {
             } else {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Report';
-                alert('Failed to submit report. Please try again.');
+                showError('Failed to submit report. Please try again.');
             }
-        }).catch(() => {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Report';
-            alert('Failed to submit report. Please try again.');
+        }).catch((error) => {
+            showError(error instanceof Error ? error.message : 'Failed to submit report. Please try again.');
         });
     });
 };
@@ -1228,8 +1249,10 @@ const ensureInlineActionsRoot = () => {
                 addBtn.innerHTML = `<span>Adding...</span>`;
                 void (async () => {
                     try {
+                        const card = parseCardsPayload(inlineActionState.generatedCardsText || '').cards.filter((item) => !isLeadInCard(item))[cardIdx];
                         const questionData = await getQuestionContent();
-                        const res = await requestAddToLibrary(questionId, cardIdx, questionData);
+                        if (inlineActionState.questionId !== questionId) return;
+                        const res = await requestAddToLibrary(questionId, cardIdx, questionData, card);
                         if (res?.success) {
                             inlineActionState.addedCardIndices.add(cardIdx);
                             const cached = questionStateCache.get(questionId);
@@ -1248,7 +1271,7 @@ const ensureInlineActionsRoot = () => {
                             addBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add to Library</span>`;
                         }
                     } catch (e) {
-                        console.error('Failed to add card to library:', e);
+                        setInlineStatus(e instanceof Error ? e.message : 'Failed to add card to library.', 'error');
                         addBtn.classList.remove('is-animating');
                         addBtn.disabled = false;
                         addBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Add to Library</span>`;
@@ -1404,24 +1427,6 @@ const persistGeneratedCardsLocally = (
 const isOpenQbankCoreUser = (): boolean =>
     isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier);
 
-/** Restore openQbank core inline preview from per-question session cache (not chrome.storage). */
-const hydrateOpenQbankCorePreviewFromSession = (questionId: string): boolean => {
-    if (!isOpenQbankCoreUser()) return false;
-    const mem = questionStateCache.get(questionId);
-    if (!mem?.generatedCardsText) return false;
-    inlineActionState.generatedCardsText = mem.generatedCardsText;
-    inlineActionState.lockedCount = mem.lockedCount || 0;
-    inlineActionState.contentScope = mem.contentScope;
-    inlineActionState.cardsDoneQuestionId = questionId;
-    inlineActionState.flagDoneQuestionId = mem.flagDoneQuestionId ?? questionId;
-    inlineActionState.showPreview = mem.showPreview !== false;
-    inlineActionState.userOwnedPreview = Boolean(mem.userOwnedPreview);
-    if (mem.addedCardIndices) {
-        inlineActionState.addedCardIndices = new Set(mem.addedCardIndices);
-    }
-    return true;
-};
-
 const readGeneratedCardsLocally = async (questionId: string): Promise<string | null> => {
     const memory = questionStateCache.get(questionId);
     if (memory?.generatedCardsText) {
@@ -1465,7 +1470,8 @@ const updateInlineQuestionState = (questionId: string | null) => {
 
     // Restore cached state if returning to a previously-visited question
     const cached = questionId ? questionStateCache.get(questionId) : null;
-    if (cached) {
+    if (questionId && isOpenQbankCoreUser()) polledQuestionIds.delete(questionId);
+    if (cached && !isOpenQbankCoreUser()) {
         inlineActionState.generatedCardsText = cached.generatedCardsText;
         inlineActionState.lockedCount = cached.lockedCount || 0;
         inlineActionState.contentScope = cached.contentScope;
@@ -1505,12 +1511,49 @@ const renderInlineActions = () => {
     if (!canRenderInlineActionsInCurrentWindow()) return;
 
     ensureInlineActionStyles();
+    const isWhitelistedHost = QBANK_HOSTS.some((re) => re.test(window.location.hostname));
+    const allowUntrusted = inlineActionState.trustedSitesOnly === false;
+
+    if (!isWhitelistedHost && !allowUntrusted) {
+        document.getElementById(INLINE_ACTIONS_ROOT_ID)?.remove();
+        removeCustomCardFab();
+        return;
+    }
+
     const placement = getInlineActionPlacement();
     const fingerprint = getQuestionFingerprint();
+    const isOpenQbank = Boolean(
+        inlineActionState.statusResolved &&
+        isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier)
+    );
+    const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
 
     if (!placement || !fingerprint?.questionId) {
         document.getElementById(INLINE_ACTIONS_ROOT_ID)?.remove();
-        removeCustomCardFab();
+        if (allowUntrusted && isOpenQbank) {
+            const fabShouldShow = Boolean(
+                isOpenQbank &&
+                (isOpenQbankFreeUser || inlineActionState.customCardFabEnabled === true)
+            );
+            updateCustomCardFabVisibility(fabShouldShow, {
+                getQuestionData: getQuestionContent,
+                getFingerprint: getQuestionFingerprint,
+                getStatus: () => ({
+                    isOpenQbankUser: isOpenQbank,
+                    isPro: isOpenQbankPro(inlineActionState.userType, inlineActionState.userTier),
+                    isAdmin: isOpenQbankAdmin(inlineActionState.userType, inlineActionState.userTier),
+                    totalCards: inlineActionState.totalCards || 0,
+                    customAnkiEnabled: Boolean(inlineActionState.customAnkiEnabled),
+                }),
+                sendRequest: sendOpenQBankRequest,
+                canonicalOrganSystems: CANONICAL_ORGAN_SYSTEMS,
+                resolveOrganSystem,
+                buildQuestionDataPayload,
+                keyboardShortcutsEnabled: inlineActionState.keyboardShortcutsEnabled !== false,
+            });
+        } else {
+            removeCustomCardFab();
+        }
         // Host pages (UWorld, etc.) briefly drop fingerprint during DOM re-renders — do not wipe card state.
         return;
     }
@@ -1519,25 +1562,14 @@ const renderInlineActions = () => {
 
     if (
         isOpenQbankCoreUser()
-        && !inlineActionState.generatedCardsText
-        && fingerprint.questionId
-    ) {
-        hydrateOpenQbankCorePreviewFromSession(fingerprint.questionId);
-    } else if (
-        isOpenQbankCoreUser()
         && inlineActionState.generatedCardsText
         && inlineActionState.cardsDoneQuestionId === fingerprint.questionId
     ) {
         inlineActionState.showPreview = true;
     }
 
-    const isOpenQbank = Boolean(
-        inlineActionState.statusResolved &&
-        isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier)
-    );
-    const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
     const fabShouldShow = Boolean(
-        fingerprint?.questionId &&
+        (fingerprint?.questionId || allowUntrusted) &&
         isOpenQbank &&
         (isOpenQbankFreeUser || inlineActionState.customCardFabEnabled === true)
     );
@@ -1877,7 +1909,7 @@ const refreshCustomAnkiAccess = async () => {
         }
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
             try {
-                const stored = await chrome.storage.local.get(['custom_card_fab_enabled', 'ai_flashcards_enabled', 'keyboard_shortcuts_enabled']);
+                const stored = await chrome.storage.local.get(['custom_card_fab_enabled', 'ai_flashcards_enabled', 'keyboard_shortcuts_enabled', 'trusted_sites_only']);
                 if (stored && typeof stored.custom_card_fab_enabled === 'boolean') {
                     inlineActionState.customCardFabEnabled = stored.custom_card_fab_enabled;
                 }
@@ -1886,6 +1918,9 @@ const refreshCustomAnkiAccess = async () => {
                 }
                 if (stored && typeof stored.keyboard_shortcuts_enabled === 'boolean') {
                     inlineActionState.keyboardShortcutsEnabled = stored.keyboard_shortcuts_enabled;
+                }
+                if (stored && typeof stored.trusted_sites_only === 'boolean') {
+                    inlineActionState.trustedSitesOnly = stored.trusted_sites_only;
                 }
             } catch {
                 // Ignore storage read failures.
@@ -1928,6 +1963,8 @@ const refreshCustomAnkiAccess = async () => {
 };
 interface AnkiCard {
     cardType: string;
+    cardRef?: string;
+    revision?: number;
     front: string;
     back: string;
     clozeText: string;
@@ -2013,6 +2050,8 @@ const parseCardsPayload = (text: string): ParsedCardsResult => {
 
                     return {
                         cardType,
+                        cardRef: typeof c.card_ref === 'string' ? c.card_ref : undefined,
+                        revision: typeof c.revision === 'number' ? c.revision : undefined,
                         front,
                         back,
                         clozeText,
@@ -2187,6 +2226,7 @@ const fetchGeneratedCardsIfReady = async (
             question_id: questionId,
             question_data: buildCheckOnlyQuestionDataPayload(questionData),
             check_only: true,
+            all_card_types: true,
         },
         true,
     );
@@ -2340,11 +2380,6 @@ if (
 const isOpenQbankCore = isOpenQbankCoreUser();
 const checkEpochAtStart = isOpenQbankCore ? (cardCheckEpochByQuestion.get(questionId) ?? 0) : 0;
 
-if (isOpenQbankCore && hydrateOpenQbankCorePreviewFromSession(questionId)) {
-    renderInlineActions();
-    return;
-}
-
 // Non-core tiers may use in-memory cache; openQbank core uses session cache + API.
 if (!isOpenQbankCore) {
 const localCards = await readGeneratedCardsLocally(questionId);
@@ -2382,6 +2417,7 @@ const response = await sendOpenQBankRequest<{
         question_id: questionId,
         question_data: buildCheckOnlyQuestionDataPayload(questionData),
         check_only: true,
+        all_card_types: true,
     },
     true,
 );
@@ -2458,10 +2494,6 @@ const handleInlineGenerateCards = async () => {
     }
 
     const isOpenQbankCore = isOpenQbankCoreUser();
-
-    if (isOpenQbankCore && inlineActionState.questionId) {
-        hydrateOpenQbankCorePreviewFromSession(inlineActionState.questionId);
-    }
 
     // Non-core tiers may use in-memory cache; openQbank core uses session cache + API.
     if (!isOpenQbankCore && !inlineActionState.generatedCardsText && inlineActionState.questionId) {
@@ -2701,7 +2733,7 @@ try {
     if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area !== 'local') return;
-            if (changes[AUTH_STATUS_STORAGE_KEY] || changes['openqbank_access_token'] || changes['custom_card_fab_enabled'] || changes['ai_flashcards_enabled'] || changes['keyboard_shortcuts_enabled']) {
+            if (changes[AUTH_STATUS_STORAGE_KEY] || changes['openqbank_access_token'] || changes['custom_card_fab_enabled'] || changes['ai_flashcards_enabled'] || changes['keyboard_shortcuts_enabled'] || changes['trusted_sites_only']) {
                 void refreshCustomAnkiAccess().then(() => renderInlineActions());
             }
         });

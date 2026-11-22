@@ -26,8 +26,14 @@ const showPill = (rect: DOMRect, text: string) => {
     pill.setAttribute('aria-label', 'Create openQbank card from selection');
     pill.dataset.selection = text;
     const margin = 8;
+    const isUWorld = /(^|\.)uworld\.com$/i.test(window.location.hostname);
     const left = Math.min(Math.max(rect.right - 90, margin), window.innerWidth - 100);
-    const top = Math.min(Math.max(rect.bottom + 6, margin), window.innerHeight - 40);
+    // On UWorld, native highlight toolbar sits directly below selection. Offset by +38px or flip above selection.
+    let top = rect.bottom + (isUWorld ? 38 : 6);
+    if (top + 32 > window.innerHeight) {
+        top = Math.max(margin, rect.top - (isUWorld ? 38 : 34));
+    }
+    top = Math.min(Math.max(top, margin), window.innerHeight - 40);
     pill.style.cssText = `
         position: fixed;
         z-index: 2147483646;

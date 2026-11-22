@@ -594,6 +594,7 @@ export const ensureCustomCardFab = (options: CustomCardFabOptions) => {
         <!-- Modal Footer Actions -->
         <div class="ocb-modal-footer">
           <button type="button" id="ocb-btn-copy" class="ocb-btn ocb-btn-ghost">Copy for Anki</button>
+          <button type="button" id="ocb-btn-skip" class="ocb-btn ocb-btn-ghost" hidden>Skip draft</button>
           <button type="button" id="ocb-btn-cancel" class="ocb-btn ocb-btn-ghost">Cancel</button>
           <button type="button" id="ocb-btn-submit" class="ocb-btn ocb-btn-primary">
             <span id="ocb-submit-text">Create Flashcard</span>
@@ -768,6 +769,14 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     renderOcbSequentialSteps(root, steps);
   });
 
+  const skipBtn = root.querySelector<HTMLButtonElement>('#ocb-btn-skip');
+  const nextDraft = () => {
+    const draft = pendingDrafts.shift();
+    if (draft) void openCustomCardModal(options, draft);
+    else toggleModal(false);
+  };
+  skipBtn?.addEventListener('click', nextDraft);
+
   const toggleModal = (open?: boolean) => {
     const status = options.getStatus();
     if (!status.isOpenQbankUser) {
@@ -788,6 +797,9 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
           setTimeout(() => frontInput?.focus(), 150);
         }
       } else {
+        pendingDrafts = [];
+        reviewingDrafts = false;
+        if (skipBtn) skipBtn.hidden = true;
         modal.classList.remove('ocb-modal-open');
         fabBtn?.classList.remove('ocb-fab-active');
         if (statusMsg) statusMsg.style.display = 'none';
@@ -1175,6 +1187,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
       updateFrontMediaUi(root, null);
       if (fileInput) fileInput.value = '';
       if (frontFileInput) frontFileInput.value = '';
+      if (reviewingDrafts) nextDraft();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save flashcard.';
       showStatus(statusMsg, msg, 'error');
@@ -2017,6 +2030,17 @@ export interface CustomCardPrefill {
   steps?: { label: string; value: string }[];
 }
 
+let pendingDrafts: CustomCardPrefill[] = [];
+let reviewingDrafts = false;
+
+export async function openCustomCardDrafts(options: CustomCardFabOptions, drafts: CustomCardPrefill[]) {
+  const [first, ...remaining] = drafts;
+  if (!first) return;
+  pendingDrafts = remaining;
+  reviewingDrafts = true;
+  await openCustomCardModal(options, first);
+}
+
 export const openCustomCardModal = async (
   options: CustomCardFabOptions,
   prefill: CustomCardPrefill,
@@ -2039,6 +2063,8 @@ export const openCustomCardModal = async (
   }
 
   const isPro = Boolean(options.getStatus().isPro);
+  const skip = root.querySelector<HTMLButtonElement>('#ocb-btn-skip');
+  if (skip) skip.hidden = !reviewingDrafts;
   const resolvedCardType = prefill.cardType || 'cloze';
   applyCardTypeDom(root, resolvedCardType, isPro);
   setCardTypeRef?.(resolvedCardType);

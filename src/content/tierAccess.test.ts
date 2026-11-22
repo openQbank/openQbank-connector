@@ -12,7 +12,7 @@ import {
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
 } from './tierAccess';
-import { BYOK_SCHEMA, BYOK_SYSTEM_PROMPT } from '../selection/byokPrompt';
+import { BYOK_PROMPTS, toPrefill } from '../selection/byokPrompt';
 
 describe('tierAccess', () => {
     it('identifies admin users with isOpenQbankAdmin', () => {
@@ -56,17 +56,16 @@ describe('tierAccess', () => {
     });
 });
 
-describe('BYOK cloze prompt and schema', () => {
-    it('enforces cloze-only schema with required cloze and notes fields', () => {
-        expect(BYOK_SCHEMA.properties).toHaveProperty('cloze');
-        expect(BYOK_SCHEMA.properties).toHaveProperty('notes');
-        expect(BYOK_SCHEMA.required).toContain('cloze');
-        expect(BYOK_SCHEMA.required).toContain('notes');
-        expect(BYOK_SCHEMA.additionalProperties).toBe(false);
+describe('BYOK draft types', () => {
+    it('uses a generic prompt for each type', () => {
+        expect(BYOK_PROMPTS.default).toContain('{{c1::');
+        expect(BYOK_PROMPTS.default).toContain('one or two');
+        expect(BYOK_PROMPTS.vignette).toContain('ordered steps');
     });
 
-    it('instructs model for standard Anki cloze syntax in system prompt', () => {
-        expect(BYOK_SYSTEM_PROMPT).toContain('CLOZE');
-        expect(BYOK_SYSTEM_PROMPT).toContain('{{c1::');
+    it('preserves sequential steps and cloze text during prefill', () => {
+        const steps = [{ label: 'Diagnosis', value: 'Asthma' }, { label: 'Test', value: 'Spirometry' }];
+        expect(toPrefill({ card_type: 'sequential', front: 'A case', steps })).toMatchObject({ cardType: 'sequential', steps });
+        expect(toPrefill({ card_type: 'cloze', front: '{{c1::Asthma}}' })).toMatchObject({ cardType: 'cloze', front: '{{c1::Asthma}}' });
     });
 });
