@@ -1,3 +1,4 @@
+import { normalizeWhitespace } from '../shared/text';
 import {
     CARD_POLL_CHECK_OFFSETS_MS,
     calculateCardPollProgress,
@@ -67,9 +68,6 @@ interface InlineActionState {
 
 const INLINE_ACTIONS_ROOT_ID = 'openchromebank-inline-actions';
 const INLINE_ACTIONS_STYLE_ID = 'openchromebank-inline-actions-style';
-
-const normalizeWhitespace = (text: string): string =>
-    text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 
 type LearningFlagResponse = {
     flagged?: boolean;

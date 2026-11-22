@@ -1,3 +1,4 @@
+import { normalizeWhitespace } from '../shared/text';
 import type { InlineQuestionDataPayload, Platform, QuestionData, QuestionFingerprint } from "./types";
 export type { InlineQuestionDataPayload, Platform, QuestionData, QuestionFingerprint } from "./types";
 import { CANONICAL_ORGAN_SYSTEMS, type CanonicalOrganSystem } from "../shared/organSystems";
@@ -16,10 +17,6 @@ const ORGAN_SYSTEM_ALIAS_MAP: Record<string, CanonicalOrganSystem> = {
     obgyn: "Obstetrics", onc: "Oncology", ortho: "Orthopedics", psych: "Psychiatry", pulm: "Pulmonology",
     renal: "Nephrology", renalurin: "Nephrology", regulatory: "Regulatory Issues",
     socialsci: "Social Sciences", urology: "Urology",
-};
-
-const normalizeWhitespace = (text: string): string => {
-    return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
 const hashString = (value: string): string => {
