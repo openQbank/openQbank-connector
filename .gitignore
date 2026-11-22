@@ -1,4 +1,5 @@
 .pycache/* 
+graphify-out/
 
 # self
 misc/*
