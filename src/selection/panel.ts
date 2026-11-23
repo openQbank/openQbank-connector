@@ -74,8 +74,8 @@ export const openSelectionPanel = (selectionText: string): void => {
             box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 6px; }
-        select { min-height: 42px; padding: 0 10px; border: 1px solid var(--ocb-border); border-radius: 12px; color: var(--ocb-text); background: var(--ocb-bg-surface); }
-        textarea { width: 100%; box-sizing: border-box; border-radius: 10px; border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; resize: vertical; min-height: 72px; }
+        textarea { width: 100%; box-sizing: border-box; border-radius: 12px; border: 1px solid #e5e7eb; padding: 10px; font-size: 13px; resize: vertical; min-height: 72px; font-family: inherit; }
+        textarea:focus { outline: none; border-color: #fcd34d; box-shadow: 0 0 0 2px rgba(254, 211, 77, 0.25); }
         .actions { display: flex; gap: 8px; margin-top: 14px; align-items: center; }
         .btn-primary {
             flex: 1;
@@ -152,11 +152,11 @@ export const openSelectionPanel = (selectionText: string): void => {
                 <textarea id="oqb-sel-text"></textarea>
                 <label for="oqb-sel-ground" style="margin-top:12px;">What did I get wrong? (optional)</label>
                 <textarea id="oqb-sel-ground" rows="2" placeholder="Optional note"></textarea>
-                <label for="oqb-sel-kind" style="margin-top:12px;">Card type</label>
-                <select id="oqb-sel-kind">
-                    <option value="default">High Yield</option>
-                    <option value="vignette">Vignette</option>
-                </select>
+                <label style="margin-top:12px;">Card type</label>
+                <div class="ocb-segment-toggle" id="oqb-sel-kind-toggle">
+                    <button type="button" class="ocb-segment-btn ocb-segment-active" data-kind="default">High Yield</button>
+                    <button type="button" class="ocb-segment-btn" data-kind="vignette">Vignette</button>
+                </div>
                 <div class="actions">
                     <button type="button" class="btn-primary" id="oqb-sel-generate">Create card</button>
                     <button type="button" class="btn-ghost" id="oqb-sel-close">Close</button>
@@ -172,6 +172,18 @@ export const openSelectionPanel = (selectionText: string): void => {
     const genBtn = shadow.querySelector<HTMLButtonElement>('#oqb-sel-generate');
     const closeBtn = shadow.querySelector<HTMLButtonElement>('#oqb-sel-close');
     const backdrop = shadow.querySelector<HTMLElement>('#backdrop');
+    const kindToggle = shadow.querySelector<HTMLElement>('#oqb-sel-kind-toggle');
+
+    let currentKind: SelectionKind = 'default';
+    kindToggle?.querySelectorAll<HTMLButtonElement>('.ocb-segment-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const kind = (btn.dataset.kind || 'default') as SelectionKind;
+            currentKind = kind;
+            kindToggle.querySelectorAll<HTMLButtonElement>('.ocb-segment-btn').forEach((b) => {
+                b.classList.toggle('ocb-segment-active', b === btn);
+            });
+        });
+    });
 
     if (selTa) selTa.value = selectionText;
     setTimeout(() => selTa?.focus(), 0);
@@ -232,7 +244,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                 if (!genBtn || genBtn.disabled) return;
                 const selection = (selTa?.value || '').trim();
                 const grounding = (groundTa?.value || '').trim();
-                const cardType: SelectionKind = shadow.querySelector<HTMLSelectElement>('#oqb-sel-kind')?.value === 'vignette' ? 'vignette' : 'default';
+                const cardType: SelectionKind = currentKind;
                 if (selection.length < 3) {
                     setStatus('Selection is too short.');
                     return;

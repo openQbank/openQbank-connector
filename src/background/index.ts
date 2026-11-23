@@ -166,6 +166,36 @@ const handleByokGenerate = async (selection: string, grounding: string, kind: Se
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === 'fetch_image_base64') {
+        (async () => {
+            try {
+                const url = String(message.url || '');
+                if (!url) {
+                    sendResponse({ ok: false, error: 'No URL provided.' });
+                    return;
+                }
+                const res = await fetch(url);
+                if (!res.ok) {
+                    sendResponse({ ok: false, error: `Failed to fetch image: ${res.status}` });
+                    return;
+                }
+                const blob = await res.blob();
+                const bytes = new Uint8Array(await blob.arrayBuffer());
+                let binary = '';
+                const chunkSize = 8192;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize) as unknown as number[]);
+                }
+                const mimeType = blob.type || 'image/jpeg';
+                const dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
+                sendResponse({ ok: true, dataUrl });
+            } catch (err) {
+                sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+            }
+        })();
+        return true;
+    }
+
     if (message?.type === 'byok_generate') {
         (async () => {
             const selection = String(message.selection || '').trim();

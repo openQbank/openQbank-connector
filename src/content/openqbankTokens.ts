@@ -32,4 +32,45 @@ export const OPENQBANK_INJECTED_TOKEN_CSS = `
       --ocb-text-on-brand: #1f2937;
     }
   }
+
+  /* Segmented Toggle Control (DESIGN.md) */
+  .ocb-segment-toggle {
+    display: flex;
+    background: var(--ocb-bg-surface-alt, #f3f4f6);
+    padding: 3px;
+    border-radius: var(--ocb-radius-btn, 12px);
+    gap: 3px;
+    box-sizing: border-box;
+  }
+  .ocb-segment-btn {
+    appearance: none;
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ocb-text-secondary, #4b5563);
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    text-align: center;
+  }
+  .ocb-segment-btn:hover {
+    color: var(--ocb-text, #111827);
+  }
+  .ocb-segment-btn.ocb-segment-active,
+  .ocb-segment-btn.is-active {
+    background: var(--ocb-brand, #ffe5b4);
+    color: var(--ocb-text-on-brand, #1f2937);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    .ocb-segment-btn.ocb-segment-active,
+    .ocb-segment-btn.is-active {
+      background: var(--ocb-brand, #ffe5b4);
+      color: #1f2937;
+    }
+  }
 `;

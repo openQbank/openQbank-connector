@@ -12,7 +12,6 @@
  */
 
 import { OPENQBANK_INJECTED_TOKEN_CSS } from './openqbankTokens';
-import { DISCLAIMER_TEXT } from '../disclaimer';
 
 interface QuestionDataLike {
   questionId?: string;
@@ -229,6 +228,89 @@ const processImageFile = (
   });
 };
 
+const extractImageUrlFromDataTransfer = (dt: DataTransfer | null): string | null => {
+  if (!dt) return null;
+  const uri = dt.getData('text/uri-list');
+  if (uri && /^https?:\/\//i.test(uri.trim())) {
+    return uri.trim().split(/\r?\n/)[0].trim();
+  }
+  const html = dt.getData('text/html');
+  if (html) {
+    const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (match?.[1]) return match[1];
+  }
+  const plain = dt.getData('text/plain');
+  if (plain && (/^https?:\/\//i.test(plain.trim()) || plain.trim().startsWith('data:image/'))) {
+    return plain.trim();
+  }
+  return null;
+};
+
+const resolveImageSource = async (
+  source: File | string,
+): Promise<{ dataUrl: string; width: number; height: number; sizeBytes: number }> => {
+  if (source instanceof File) {
+    return processImageFile(source);
+  }
+  const target = source.trim();
+  if (target.startsWith('data:image/')) {
+    const res = await fetch(target);
+    const blob = await res.blob();
+    return processImageFile(new File([blob], 'dropped-image.jpg', { type: blob.type || 'image/jpeg' }));
+  }
+
+  // 1. Check if the image already exists in the DOM and can be rendered to canvas directly
+  const domImg = Array.from(document.querySelectorAll('img')).find(
+    (img) => img.src === target || img.currentSrc === target || img.getAttribute('src') === target
+  );
+  if (domImg && domImg.complete && domImg.naturalWidth > 0) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = domImg.naturalWidth;
+      canvas.height = domImg.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(domImg, 0, 0);
+        const exported = canvas.toDataURL('image/jpeg', 0.85);
+        if (exported.startsWith('data:image/')) {
+          const res = await fetch(exported);
+          const blob = await res.blob();
+          return processImageFile(new File([blob], 'dropped-image.jpg', { type: 'image/jpeg' }));
+        }
+      }
+    } catch {
+      // Canvas tainted, proceed to fetch
+    }
+  }
+
+  // 2. Direct fetch with credentials: omit
+  try {
+    const res = await fetch(target, { credentials: 'omit', mode: 'cors' });
+    if (res.ok) {
+      const blob = await res.blob();
+      return processImageFile(new File([blob], 'dropped-image.jpg', { type: blob.type || 'image/jpeg' }));
+    }
+  } catch {
+    // Fallback to background worker
+  }
+
+  // 3. Fallback to background worker (bypasses CORS completely)
+  if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+    try {
+      const bgRes = await chrome.runtime.sendMessage({ type: 'fetch_image_base64', url: target });
+      if (bgRes?.ok && bgRes.dataUrl) {
+        const res = await fetch(bgRes.dataUrl);
+        const blob = await res.blob();
+        return processImageFile(new File([blob], 'dropped-image.jpg', { type: blob.type || 'image/jpeg' }));
+      }
+    } catch {
+      // background worker unavailable
+    }
+  }
+
+  throw new Error('Failed to load image from source.');
+};
+
 const updateMediaUi = (
   root: HTMLElement,
   dataUrl: string | null,
@@ -401,15 +483,6 @@ const ensureCustomCardFab = (options: CustomCardFabOptions) => {
               <img src="${(typeof chrome !== 'undefined' && chrome?.runtime?.getURL) ? chrome.runtime.getURL('logo.png') : '/logo.png'}" alt="openQbank" style="height: 20px !important; width: 20px !important; max-width: 20px !important; max-height: 20px !important; object-fit: contain !important; margin: 0 7px 0 0 !important; display: inline-block !important; vertical-align: middle !important;" />
               openQbank<span class="ocb-brand-dot">.</span>
             </span>
-            <div class="ocb-disclaimer-wrapper">
-              <button type="button" class="ocb-disclaimer-btn" aria-label="Disclaimer" title="Educational Reconstruction" onclick="this.parentElement.classList.toggle('is-open'); event.stopPropagation();">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              </button>
-              <div class="ocb-disclaimer-popover" role="tooltip">
-                <strong>Educational Reconstruction:</strong>
-                ${DISCLAIMER_TEXT}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -593,13 +666,17 @@ const ensureCustomCardFab = (options: CustomCardFabOptions) => {
 
         <!-- Modal Footer Actions -->
         <div class="ocb-modal-footer">
-          <button type="button" id="ocb-btn-copy" class="ocb-btn ocb-btn-ghost">Copy for Anki</button>
-          <button type="button" id="ocb-btn-skip" class="ocb-btn ocb-btn-ghost" hidden>Skip draft</button>
-          <button type="button" id="ocb-btn-cancel" class="ocb-btn ocb-btn-ghost">Cancel</button>
-          <button type="button" id="ocb-btn-submit" class="ocb-btn ocb-btn-primary">
-            <span id="ocb-submit-text">Create Flashcard</span>
-            <div id="ocb-submit-spinner" class="ocb-spinner" style="display: none;"></div>
-          </button>
+          <div class="ocb-modal-footer-left">
+            <button type="button" id="ocb-btn-copy" class="ocb-btn ocb-btn-ghost">Copy for Anki</button>
+          </div>
+          <div class="ocb-modal-footer-right">
+            <button type="button" id="ocb-btn-cancel" class="ocb-btn ocb-btn-ghost">Cancel</button>
+            <button type="button" id="ocb-btn-skip" class="ocb-btn ocb-btn-ghost" hidden>Skip draft</button>
+            <button type="button" id="ocb-btn-submit" class="ocb-btn ocb-btn-primary">
+              <span id="ocb-submit-text">Create Flashcard</span>
+              <div id="ocb-submit-spinner" class="ocb-spinner" style="display: none;"></div>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -888,9 +965,10 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     }
 
     const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
+    const webUrl = !file ? extractImageUrlFromDataTransfer(e.dataTransfer) : null;
+    if (!file && !webUrl) return;
     try {
-      const result = await processImageFile(file);
+      const result = await resolveImageSource(file || webUrl!);
       updateMediaUi(root, result.dataUrl, result);
       if (statusMsg) statusMsg.style.display = 'none';
     } catch (err) {
@@ -964,9 +1042,10 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     }
 
     const file = e.dataTransfer?.files?.[0];
-    if (!file) return;
+    const webUrl = !file ? extractImageUrlFromDataTransfer(e.dataTransfer) : null;
+    if (!file && !webUrl) return;
     try {
-      const result = await processImageFile(file);
+      const result = await resolveImageSource(file || webUrl!);
       updateFrontMediaUi(root, result.dataUrl, result);
       if (statusMsg) statusMsg.style.display = 'none';
     } catch (err) {
@@ -984,33 +1063,62 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   // Media: Clipboard paste anywhere in modal
   modal?.addEventListener('paste', async (e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
-    if (!items || items.length === 0) return;
+    let handled = false;
+    if (items && items.length > 0) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          e.preventDefault();
+          if (!options.getStatus().isPro) {
+            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+            return;
+          }
 
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.kind === 'file' && item.type.startsWith('image/')) {
-        e.preventDefault();
-        if (!options.getStatus().isPro) {
-          showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+          const file = item.getAsFile();
+          if (!file) continue;
+
+          try {
+            const result = await resolveImageSource(file);
+            if (currentCardType === 'image') {
+              updateFrontMediaUi(root, result.dataUrl, result);
+            } else {
+              updateMediaUi(root, result.dataUrl, result);
+            }
+            if (statusMsg) statusMsg.style.display = 'none';
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to process pasted image.';
+            showStatus(statusMsg, msg, 'error');
+          }
+          handled = true;
           return;
         }
+      }
+    }
 
-        const file = item.getAsFile();
-        if (!file) continue;
-
-        try {
-          const result = await processImageFile(file);
-          if (currentCardType === 'image' && !currentFrontImageDataUrl) {
-            updateFrontMediaUi(root, result.dataUrl, result);
-          } else {
-            updateMediaUi(root, result.dataUrl, result);
+    if (!handled) {
+      const target = e.target as HTMLElement | null;
+      const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      if (!isTextInput) {
+        const imgUrl = extractImageUrlFromDataTransfer(e.clipboardData);
+        if (imgUrl) {
+          e.preventDefault();
+          if (!options.getStatus().isPro) {
+            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+            return;
           }
-          if (statusMsg) statusMsg.style.display = 'none';
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Failed to process pasted image.';
-          showStatus(statusMsg, msg, 'error');
+          try {
+            const result = await resolveImageSource(imgUrl);
+            if (currentCardType === 'image') {
+              updateFrontMediaUi(root, result.dataUrl, result);
+            } else {
+              updateMediaUi(root, result.dataUrl, result);
+            }
+            if (statusMsg) statusMsg.style.display = 'none';
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to process pasted image.';
+            showStatus(statusMsg, msg, 'error');
+          }
         }
-        return;
       }
     }
   });
@@ -1468,7 +1576,7 @@ const injectFabStyles = () => {
       position: fixed;
       bottom: 144px;
       right: 24px;
-      width: 390px;
+      width: 430px;
       height: 580px;
       max-width: calc(100vw - 36px);
       max-height: min(600px, calc(100vh - 150px));
@@ -1895,31 +2003,51 @@ const injectFabStyles = () => {
     .ocb-modal-footer {
       display: flex;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: space-between;
       gap: 8px;
       padding: 12px 18px;
       border-top: 1px solid #f3f4f6;
       background: #fafafa;
     }
 
+    .ocb-modal-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ocb-modal-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .ocb-btn {
       appearance: none;
       border-radius: 12px;
-      padding: 8px 16px;
-      font-size: 12px;
+      padding: 0 14px;
+      height: 38px;
+      font-size: 12.5px;
       font-weight: 700;
-      letter-spacing: 0.02em;
+      letter-spacing: -0.01em;
+      white-space: nowrap !important;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 150ms ease, transform 120ms ease, opacity 150ms ease;
+      font-family: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
+      transition: background 150ms ease, transform 120ms ease, opacity 150ms ease, border-color 150ms ease;
     }
 
     .ocb-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .ocb-btn:not(:disabled):active {
+      transform: translateY(1px);
     }
 
     .ocb-btn-ghost {
@@ -1930,12 +2058,14 @@ const injectFabStyles = () => {
 
     .ocb-btn-ghost:hover:not(:disabled) {
       background: #f3f4f6;
+      border-color: #e5e7eb;
       color: #111827;
+      transform: translateY(-1px);
     }
 
     .ocb-btn-primary {
       background: #ffe5b4;
-      border: 1px solid #fcd34d;
+      border: 1px solid rgba(0, 0, 0, 0.05);
       color: #1f2937;
     }
 
@@ -1945,7 +2075,7 @@ const injectFabStyles = () => {
     }
 
     .ocb-btn-primary:active:not(:disabled) {
-      transform: translateY(0);
+      transform: translateY(1px);
     }
 
     .ocb-spinner {

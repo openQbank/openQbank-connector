@@ -383,6 +383,11 @@ const ensureInlineActionStyles = () => {
         -webkit-user-select: text !important;
         pointer-events: auto !important;
       }
+      img, picture, canvas, [role="img"] {
+        -webkit-user-drag: auto !important;
+        user-select: auto !important;
+        pointer-events: auto !important;
+      }
       #${INLINE_ACTIONS_ROOT_ID} {
         display: flex;
         flex-direction: column;
@@ -390,15 +395,7 @@ const ensureInlineActionStyles = () => {
         gap: 8px;
         width: 100%;
         margin: 14px auto 18px;
-        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-        width: 100%;
-        align-items: center;
+        font-family: 'DM Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-button {
         appearance: none !important;
@@ -472,14 +469,6 @@ const ensureInlineActionStyles = () => {
         flex: 0 0 auto !important;
         display: inline-block !important;
         vertical-align: middle !important;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--flag {
-        background: #ffffff;
-        border-color: #e5e7eb;
-        color: #111827;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--flag:hover:not(:disabled) {
-        background: #f3f4f6;
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-status {
         width: 100%;
@@ -585,9 +574,9 @@ const ensureInlineActionStyles = () => {
       #${INLINE_ACTIONS_ROOT_ID} .ocb-preview-card {
         background: #ffffff;
         border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 10px 14px;
-        margin-bottom: 8px;
+        border-radius: 20px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-preview-card-field {
         font-size: 13px;
@@ -650,11 +639,12 @@ const ensureInlineActionStyles = () => {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 5px;
-        min-height: 42px;
+        gap: 6px;
+        height: 32px;
+        min-height: 32px;
         white-space: nowrap;
         padding: 0 12px;
-        font-size: 11.5px;
+        font-size: 12px;
         font-weight: 700;
         font-family: inherit;
         border-radius: 12px;
@@ -664,20 +654,19 @@ const ensureInlineActionStyles = () => {
         cursor: pointer !important;
         text-decoration: none;
         line-height: 1;
-        letter-spacing: 0.01em;
+        letter-spacing: -0.01em;
         transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-add-library-btn:hover:not(:disabled):not(.is-added),
       .ocb-add-library-btn:hover:not(:disabled):not(.is-added) {
         background-color: #ffdab9;
-        border-color: #fbbf24;
         transform: translateY(-1px);
         box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-add-library-btn:active:not(:disabled):not(.is-added),
       .ocb-add-library-btn:active:not(:disabled):not(.is-added) {
-        transform: translateY(0);
+        transform: translateY(1px);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
       .ocb-add-library-btn.is-animating {
@@ -696,10 +685,10 @@ const ensureInlineActionStyles = () => {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
         padding: 0;
-        border-radius: 8px;
+        border-radius: 12px;
         background: transparent;
         border: 1px solid #e5e7eb;
         color: #9ca3af;
@@ -710,6 +699,10 @@ const ensureInlineActionStyles = () => {
         background: #fef2f2;
         border-color: #fca5a5;
         color: #dc2626;
+        transform: translateY(-1px);
+      }
+      #${INLINE_ACTIONS_ROOT_ID} .ocb-report-btn:active {
+        transform: translateY(1px);
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-report-btn.is-reported {
         background: #fef2f2;
@@ -965,14 +958,6 @@ const setInlineStatus = (status: string, kind: InlineActionState['statusKind'] =
     renderInlineActions();
 };
 
-const createLibraryButton = () => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'ocb-button ocb-button--flag';
-    button.dataset.ocbAction = 'flag';
-    return button;
-};
-
 const openReportCardModal = (cardIndex: number, triggerBtn?: HTMLElement) => {
     let modal = document.getElementById('ocb-report-modal');
     if (modal) modal.remove();
@@ -1133,10 +1118,6 @@ const ensureInlineActionsRoot = () => {
     root = document.createElement('div');
     root.id = INLINE_ACTIONS_ROOT_ID;
 
-    const actions = document.createElement('div');
-    actions.className = 'ocb-actions';
-    actions.append(createLibraryButton());
-
     const status = document.createElement('div');
     status.className = 'ocb-status';
     status.dataset.kind = 'idle';
@@ -1145,7 +1126,7 @@ const ensureInlineActionsRoot = () => {
     previewContainer.className = 'ocb-preview-container';
     previewContainer.hidden = true;
 
-    root.append(actions, status, previewContainer);
+    root.append(status, previewContainer);
     root.addEventListener('click', (event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;
@@ -1213,11 +1194,6 @@ const ensureInlineActionsRoot = () => {
             renderInlineActions();
             return;
         }
-
-        const button = target.closest<HTMLButtonElement>('[data-ocb-action="flag"]');
-        if (!button || button.disabled || !root?.contains(button)) return;
-        void handleInlineFlagQuestion();
-
     });
 
     return root;
@@ -1499,13 +1475,8 @@ const renderInlineActions = () => {
     })();
     root.classList.toggle('ocb-dark', isDarkSurface);
 
-    const isHigherTier = inlineActionState.customAnkiEnabled === true;
-    const flagDoneForQuestion = inlineActionState.flagDoneQuestionId === inlineActionState.questionId;
-
-    const flagButton = root.querySelector<HTMLButtonElement>('[data-ocb-action="flag"]');
     const status = root.querySelector<HTMLDivElement>('.ocb-status');
     const previewContainer = root.querySelector<HTMLDivElement>('.ocb-preview-container');
-    const actionsDiv = root.querySelector<HTMLDivElement>('.ocb-actions');
 
     const parsedCardsList = inlineActionState.generatedCardsText
         ? parseCardsPayload(inlineActionState.generatedCardsText).cards
@@ -1516,27 +1487,6 @@ const renderInlineActions = () => {
         inlineActionState.generatedCardsText &&
         visibleCardsList.length > 0
     );
-
-    if (flagButton) {
-        if (isHigherTier) {
-            flagButton.hidden = true;
-            flagButton.style.setProperty('display', 'none', 'important');
-        } else {
-            flagButton.hidden = false;
-            flagButton.style.setProperty('display', 'inline-flex', 'important');
-            flagButton.disabled = inlineActionState.flagPending;
-            flagButton.innerHTML = inlineActionState.flagPending ? 'Adding...' : flagDoneForQuestion ? 'Added to Library' : 'Add to Library';
-        }
-    }
-
-    if (actionsDiv) {
-        const isFlagHidden = !flagButton || flagButton.hidden || flagButton.style.display === 'none';
-        if (isFlagHidden) {
-            actionsDiv.style.setProperty('display', 'none', 'important');
-        } else {
-            actionsDiv.style.removeProperty('display');
-        }
-    }
 
     if (status) {
         if (hasCardsDisplayed || inlineActionState.statusKind === 'info' || inlineActionState.cardsPending) {
@@ -2392,3 +2342,70 @@ try {
 } catch {
     // Ignore if extension APIs unavailable.
 }
+
+const enableImageInteractions = () => {
+    const findImageUnderPoint = (x: number, y: number): HTMLImageElement | null => {
+        try {
+            const elements = document.elementsFromPoint(x, y);
+            for (const el of elements) {
+                if (el instanceof HTMLImageElement && (el.src || el.currentSrc)) return el;
+                const childImg = el.querySelector('img');
+                if (childImg && (childImg.src || childImg.currentSrc)) return childImg;
+            }
+        } catch {
+            // ignore
+        }
+        return null;
+    };
+
+    window.addEventListener('dragstart', (e) => {
+        const target = e.target as HTMLElement | null;
+        let img = (target instanceof HTMLImageElement ? target : null) || target?.closest?.('img') || target?.querySelector?.('img') || null;
+        if (!img && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+            img = findImageUnderPoint(e.clientX, e.clientY);
+        }
+        if (img) {
+            e.stopImmediatePropagation();
+            const src = img.currentSrc || img.src || img.getAttribute('src');
+            if (src && e.dataTransfer) {
+                try {
+                    e.dataTransfer.setData('text/uri-list', src);
+                    e.dataTransfer.setData('text/plain', src);
+                    e.dataTransfer.setData('text/html', img.outerHTML);
+                    if (typeof e.dataTransfer.setDragImage === 'function') {
+                        e.dataTransfer.setDragImage(img, 20, 20);
+                    }
+                } catch {
+                    // ignore
+                }
+            }
+        }
+    }, true);
+
+    window.addEventListener('contextmenu', (e) => {
+        const target = e.target as HTMLElement | null;
+        const img = (target instanceof HTMLImageElement ? target : null) || target?.closest?.('img') || target?.querySelector?.('img');
+        if (img) {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
+    window.addEventListener('copy', (e) => {
+        const target = e.target as HTMLElement | null;
+        const img = (target instanceof HTMLImageElement ? target : null) || target?.closest?.('img') || target?.querySelector?.('img');
+        if (img) {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+
+    try {
+        document.ondragstart = null;
+        document.oncontextmenu = null;
+        document.oncopy = null;
+        document.onselectstart = null;
+    } catch {
+        // ignore
+    }
+};
+
+enableImageInteractions();
