@@ -6,7 +6,6 @@ import {
     isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankAdmin,
-    shouldShowOpenQbankGenerateButton,
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
 } from './tierAccess';
@@ -25,11 +24,6 @@ describe('tierAccess', () => {
         expect(isOpenQbankFree(null, 'free')).toBe(true);
         expect(isOpenQbankFree(null, 'pro')).toBe(false);
         expect(isOpenQbankPro(null, 'pro')).toBe(true);
-    });
-
-    it('gates Generate button for openQbank inline preview', () => {
-        expect(shouldShowOpenQbankGenerateButton(true, false)).toBe(true);
-        expect(shouldShowOpenQbankGenerateButton(true, true)).toBe(false);
     });
 
     it('applies cached preview when server reports already_cached', () => {

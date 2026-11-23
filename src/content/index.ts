@@ -1,17 +1,15 @@
 import { normalizeWhitespace } from '../shared/text';
 import {
     CARD_POLL_CHECK_OFFSETS_MS,
-    calculateCardPollProgress,
     isOpenQbankTier,
     isOpenQbankFree,
     isOpenQbankPro,
     isOpenQbankAdmin,
     isLeadInCard,
-    shouldShowOpenQbankGenerateButton,
     shouldApplyOpenQbankCachedPreview,
     isExtensionDarkSurface,
 } from './tierAccess';
-import { sendOpenQBankRequest, showUpdateRequiredModal } from '../shared/request';
+import { sendOpenQBankRequest } from '../shared/request';
 import { CANONICAL_ORGAN_SYSTEMS, resolveOrganSystem } from '../shared/organSystems';
 import {
     updateCustomCardFabVisibility,
@@ -51,9 +49,6 @@ interface InlineActionState {
     revealedCardIndices: Set<number>;
     addedCardIndices: Set<number>;
     reportingCardIndex?: number | null;
-    countdownText?: string | null;
-    countdownProgress?: number | null;
-    countdownStartedAt?: number | null;
     modalZoomLevel?: number;
     totalCards?: number;
     customCardFabEnabled?: boolean;
@@ -71,36 +66,6 @@ const INLINE_ACTIONS_STYLE_ID = 'openchromebank-inline-actions-style';
 
 type LearningFlagResponse = {
     flagged?: boolean;
-};
-
-type GenerateCardsResponse = {
-    queued?: boolean;
-    already_cached?: boolean;
-    question_id?: string;
-    job_id?: number;
-    message?: string;
-    error?: string;
-    cards?: string;
-    content_scope?: 'full' | 'partial';
-    locked_count?: number;
-    user_owned?: boolean;
-    generation_pending?: boolean;
-    generation_failed?: boolean;
-};
-
-const requestGenerateCards = async (
-    questionId?: string,
-    questionData?: QuestionData | null,
-): Promise<GenerateCardsResponse> => {
-    return (await sendOpenQBankRequest<GenerateCardsResponse>(
-        '/api/extension/generate-cards',
-        {
-            question_id: questionId?.trim() || questionData?.questionId?.trim() || '',
-            question_data: buildQuestionDataPayload(questionData),
-            all_card_types: true,
-        },
-        true,
-    )) || {};
 };
 
 const requestLearningFlag = async (
@@ -507,57 +472,6 @@ const ensureInlineActionStyles = () => {
         flex: 0 0 auto !important;
         display: inline-block !important;
         vertical-align: middle !important;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--cards {
-        background: #ffe5b4 !important;
-        border-color: #ffe5b4 !important;
-        color: #1f2937 !important;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--cards:hover:not(:disabled) {
-        background: #ffdab9 !important;
-        border-color: #ffdab9 !important;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--peach-cta {
-        position: relative;
-        z-index: 0;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--peach-cta::before {
-        content: '';
-        position: absolute;
-        inset: -3px;
-        border-radius: 15px;
-        padding: 3px;
-        background: linear-gradient(90deg, #ffe5b4, #ffb347, #3b82f6, #ffb347, #ffe5b4);
-        background-size: 300% 100%;
-        -webkit-mask:
-          linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask:
-          linear-gradient(#fff 0 0) content-box,
-          linear-gradient(#fff 0 0);
-        mask-composite: exclude;
-        animation: ocb-peach-ring-shift 2.4s ease-in-out infinite;
-        pointer-events: none;
-        z-index: -1;
-      }
-      @keyframes ocb-peach-ring-shift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--countdown {
-        position: relative !important;
-        border: 2px solid #ffdab9 !important;
-        background:
-          linear-gradient(90deg, #ffe5b4, #ffb347, #3b82f6) left center / var(--ocb-progress, 0%) 100% no-repeat,
-          #fff7ed !important;
-        opacity: 0.95 !important;
-        cursor: not-allowed !important;
-        color: #1f2937 !important;
-        transition: background-size 0.15s ease-out;
-      }
-      #${INLINE_ACTIONS_ROOT_ID} .ocb-button--countdown.ocb-button--peach-cta::before {
-        display: none;
       }
       #${INLINE_ACTIONS_ROOT_ID} .ocb-button--flag {
         background: #ffffff;
@@ -1051,11 +965,11 @@ const setInlineStatus = (status: string, kind: InlineActionState['statusKind'] =
     renderInlineActions();
 };
 
-const createInlineActionButton = (action: 'cards' | 'flag') => {
+const createLibraryButton = () => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `ocb-button ocb-button--${action}`;
-    button.dataset.ocbAction = action;
+    button.className = 'ocb-button ocb-button--flag';
+    button.dataset.ocbAction = 'flag';
     return button;
 };
 
@@ -1221,10 +1135,7 @@ const ensureInlineActionsRoot = () => {
 
     const actions = document.createElement('div');
     actions.className = 'ocb-actions';
-    actions.append(
-        createInlineActionButton('cards'),
-        createInlineActionButton('flag'),
-    );
+    actions.append(createLibraryButton());
 
     const status = document.createElement('div');
     status.className = 'ocb-status';
@@ -1303,23 +1214,10 @@ const ensureInlineActionsRoot = () => {
             return;
         }
 
-        const button = target.closest<HTMLButtonElement>('[data-ocb-action]');
+        const button = target.closest<HTMLButtonElement>('[data-ocb-action="flag"]');
         if (!button || button.disabled || !root?.contains(button)) return;
+        void handleInlineFlagQuestion();
 
-        const action = button.dataset.ocbAction;
-        if (action === 'cards') {
-            if (inlineActionState.generatedCardsText) {
-                inlineActionState.showPreview = true;
-                setInlineStatus('Cards generated successfully.', 'success');
-                renderInlineActions();
-                return;
-            }
-            void handleInlineGenerateCards();
-            return;
-        }
-        if (action === 'flag') {
-            void handleInlineFlagQuestion();
-        }
     });
 
     return root;
@@ -1342,52 +1240,8 @@ const questionStateCache = new Map<string, {
 
 const polledQuestionIds = new Set<string>();
 const activeCardPolls = new Set<string>();
-/** Bumps when user starts Generate so in-flight background checks cannot clobber preview state. */
-const cardCheckEpochByQuestion = new Map<string, number>();
-let cardsProgressTickerId: number | null = null;
-
-// Progress bar fills over the generation timeout window.
 const CARD_POLL_MAX_CONSECUTIVE_ERRORS = 5;
 const AUTH_STATUS_STORAGE_KEY = 'ocb_extension_auth_status';
-
-const stopCardsProgressTicker = () => {
-    if (cardsProgressTickerId != null) {
-        window.clearInterval(cardsProgressTickerId);
-        cardsProgressTickerId = null;
-    }
-};
-
-const paintCardsButtonProgress = (progress: number, label: string) => {
-    inlineActionState.countdownProgress = progress;
-    inlineActionState.countdownText = label;
-
-    const rootEl = document.getElementById(INLINE_ACTIONS_ROOT_ID);
-    const cardsBtn = rootEl?.querySelector('.ocb-button--cards') as HTMLButtonElement | null;
-    if (!cardsBtn) return;
-
-    cardsBtn.style.setProperty('--ocb-progress', `${progress.toFixed(1)}%`);
-    cardsBtn.classList.add('ocb-button--countdown');
-    cardsBtn.classList.remove('ocb-button--peach-cta');
-    cardsBtn.disabled = true;
-    cardsBtn.innerHTML = label;
-};
-
-const startCardsProgressTicker = (label: string, resetStart = false) => {
-    stopCardsProgressTicker();
-    if (resetStart || inlineActionState.countdownStartedAt == null) {
-        inlineActionState.countdownStartedAt = Date.now();
-    }
-    const startedAt = inlineActionState.countdownStartedAt;
-    paintCardsButtonProgress(calculateCardPollProgress(Date.now() - startedAt), label);
-    cardsProgressTickerId = window.setInterval(() => {
-        if (!inlineActionState.cardsPending || inlineActionState.generatedCardsText) {
-            stopCardsProgressTicker();
-            return;
-        }
-        const origin = inlineActionState.countdownStartedAt ?? startedAt;
-        paintCardsButtonProgress(calculateCardPollProgress(Date.now() - origin), label);
-    }, 100);
-};
 
 const purgeAllLocalGeneratedCards = async () => {
     questionStateCache.clear();
@@ -1648,7 +1502,6 @@ const renderInlineActions = () => {
     const isHigherTier = inlineActionState.customAnkiEnabled === true;
     const flagDoneForQuestion = inlineActionState.flagDoneQuestionId === inlineActionState.questionId;
 
-    const cardsButton = root.querySelector<HTMLButtonElement>('[data-ocb-action="cards"]');
     const flagButton = root.querySelector<HTMLButtonElement>('[data-ocb-action="flag"]');
     const status = root.querySelector<HTMLDivElement>('.ocb-status');
     const previewContainer = root.querySelector<HTMLDivElement>('.ocb-preview-container');
@@ -1664,37 +1517,6 @@ const renderInlineActions = () => {
         visibleCardsList.length > 0
     );
 
-    if (cardsButton) {
-        const isOpenQbank = isOpenQbankTier(inlineActionState.userType, inlineActionState.userTier);
-        const isOpenQbankFreeUser = isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier);
-        const showCards = isOpenQbank
-            ? !isOpenQbankFreeUser && shouldShowOpenQbankGenerateButton(
-                Boolean(inlineActionState.customAnkiEnabled),
-                hasCardsDisplayed,
-                inlineActionState.aiFlashcardsEnabled !== false,
-            )
-            : isHigherTier && !hasCardsDisplayed;
-        if (showCards) {
-            cardsButton.hidden = false;
-            cardsButton.style.removeProperty('display');
-            cardsButton.disabled = inlineActionState.cardsPending;
-            if (inlineActionState.cardsPending) {
-                cardsButton.classList.add('ocb-button--countdown');
-                cardsButton.classList.remove('ocb-button--peach-cta');
-                cardsButton.style.setProperty('--ocb-progress', `${(inlineActionState.countdownProgress ?? 0).toFixed(1)}%`);
-                cardsButton.innerHTML = `Generating...`;
-            } else {
-                cardsButton.classList.remove('ocb-button--countdown');
-                cardsButton.classList.remove('ocb-button--peach-cta');
-                cardsButton.style.removeProperty('--ocb-progress');
-                cardsButton.innerHTML = `<img src="${getSafeExtensionUrl('logo.png')}" alt="openQbank" style="height: 14px !important; width: 14px !important; max-width: 14px !important; max-height: 14px !important; vertical-align: middle !important; margin: 0 5px 0 0 !important; display: inline-block !important; object-fit: contain !important;" />Generate Flashcard`;
-            }
-        } else {
-            cardsButton.hidden = true;
-            cardsButton.style.setProperty('display', 'none', 'important');
-        }
-    }
-
     if (flagButton) {
         if (isHigherTier) {
             flagButton.hidden = true;
@@ -1708,9 +1530,8 @@ const renderInlineActions = () => {
     }
 
     if (actionsDiv) {
-        const isCardsHidden = !cardsButton || cardsButton.hidden || cardsButton.style.display === 'none';
         const isFlagHidden = !flagButton || flagButton.hidden || flagButton.style.display === 'none';
-        if (isCardsHidden && isFlagHidden) {
+        if (isFlagHidden) {
             actionsDiv.style.setProperty('display', 'none', 'important');
         } else {
             actionsDiv.style.removeProperty('display');
@@ -2142,37 +1963,18 @@ window.addEventListener('keydown', (e) => {
     }
 }, true);
 
-const finishCountdownProgressBar = async () => {
-    stopCardsProgressTicker();
-    inlineActionState.countdownProgress = 100;
-
-    const rootEl = document.getElementById(INLINE_ACTIONS_ROOT_ID);
-    const cardsBtn = rootEl?.querySelector('.ocb-button--cards') as HTMLButtonElement | null;
-    if (cardsBtn) {
-        cardsBtn.style.setProperty('--ocb-progress', '100%');
-        cardsBtn.classList.add('ocb-button--countdown');
-        cardsBtn.classList.remove('ocb-button--peach-cta');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 250));
-};
-
 const applyGeneratedCards = (
     questionId: string,
     cards: string,
     statusMessage?: string,
     meta?: { contentScope?: 'full' | 'partial' | null; lockedCount?: number; userOwned?: boolean },
 ) => {
-    stopCardsProgressTicker();
-    inlineActionState.countdownProgress = 100;
-    inlineActionState.countdownStartedAt = null;
     inlineActionState.generatedCardsText = cards;
     inlineActionState.lockedCount = meta?.lockedCount ?? inlineActionState.lockedCount ?? 0;
     inlineActionState.contentScope = meta?.contentScope ?? null;
     inlineActionState.cardsDoneQuestionId = questionId;
     inlineActionState.flagDoneQuestionId = questionId;
     inlineActionState.cardsPending = false;
-    inlineActionState.countdownText = null;
     inlineActionState.showPreview = true;
     inlineActionState.userOwnedPreview = Boolean(meta?.userOwned);
     persistGeneratedCardsLocally(questionId, cards, {
@@ -2253,30 +2055,17 @@ const isFatalPollError = (message: string): boolean =>
 const pollCardGeneration = async (questionId: string, questionData: QuestionData | null) => {
     if (activeCardPolls.has(questionId)) return;
     activeCardPolls.add(questionId);
+    const pollStartedAt = Date.now();
     polledQuestionIds.add(questionId);
 
-    const labelText = 'Generating...';
-    const pollStartedAt = inlineActionState.countdownStartedAt ?? Date.now();
-    if (inlineActionState.countdownStartedAt == null) {
-        inlineActionState.countdownStartedAt = pollStartedAt;
-    }
-
-    // Keep filling the inline button; never open a loading modal.
     inlineActionState.cardsPending = true;
-    inlineActionState.countdownText = labelText;
-    startCardsProgressTicker(labelText, false);
 
     const isCurrentQuestion = () => inlineActionState.questionId === questionId;
 
-    const resetToGenerateButton = (message?: string) => {
-        stopCardsProgressTicker();
+    const resetPendingPreview = (message?: string) => {
         polledQuestionIds.delete(questionId);
         if (!isCurrentQuestion()) return;
         inlineActionState.cardsPending = false;
-        inlineActionState.countdownText = null;
-        inlineActionState.countdownProgress = null;
-        inlineActionState.countdownStartedAt = null;
-        // No cards yet — hide preview so the generate button returns.
         if (!inlineActionState.generatedCardsText) {
             inlineActionState.showPreview = false;
         }
@@ -2294,7 +2083,6 @@ const pollCardGeneration = async (questionId: string, questionData: QuestionData
             });
             return;
         }
-        await finishCountdownProgressBar();
         applyGeneratedCards(questionId, ready.cards, undefined, {
             contentScope: ready.contentScope ?? null,
             lockedCount: ready.lockedCount ?? 0,
@@ -2308,7 +2096,6 @@ const pollCardGeneration = async (questionId: string, questionData: QuestionData
     const pendingGuard = window.setInterval(() => {
         if (!isCurrentQuestion() || inlineActionState.generatedCardsText) return;
         inlineActionState.cardsPending = true;
-        inlineActionState.countdownText = labelText;
     }, 100);
 
     try {
@@ -2337,23 +2124,23 @@ const pollCardGeneration = async (questionId: string, questionData: QuestionData
                 if (isFatalPollError(msg)) {
                     if (msg.includes('invalidated') || msg.includes('message channel closed')) {
                         setInlineStatus('Extension reloaded. Please refresh this webpage tab.', 'info');
-                        resetToGenerateButton();
+                        resetPendingPreview();
                     } else {
                         setInlineStatus(msg, 'error');
-                        resetToGenerateButton();
+                        resetPendingPreview();
                     }
                     return;
                 }
                 if (consecutiveErrors >= CARD_POLL_MAX_CONSECUTIVE_ERRORS) {
                     setInlineStatus(msg, 'error');
-                    resetToGenerateButton();
+                    resetPendingPreview();
                     return;
                 }
             }
         }
 
         // Job-aware polling covers the worker timeout; stop only after the full window.
-        resetToGenerateButton('Cards still generating. Click Generate again to check.');
+        resetPendingPreview('Cards are still generating.');
     } finally {
         window.clearInterval(pendingGuard);
         activeCardPolls.delete(questionId);
@@ -2372,7 +2159,6 @@ if (
 ) return;
 
 const isOpenQbankCore = isOpenQbankCoreUser();
-const checkEpochAtStart = isOpenQbankCore ? (cardCheckEpochByQuestion.get(questionId) ?? 0) : 0;
 
 // Non-core tiers may use in-memory cache; openQbank core uses session cache + API.
 if (!isOpenQbankCore) {
@@ -2388,14 +2174,13 @@ if (localCards) {
 }
 }
 
-// Only one network check per question per page session unless the user clicks Generate again.
+// Only one network check per question per page session.
 polledQuestionIds.add(questionId);
 
 try {
 const questionData = await getQuestionContent();
 if (!questionData || inlineActionState.questionId !== questionId) return;
 if (inlineActionState.cardsPending || activeCardPolls.has(questionId)) return;
-if (isOpenQbankCore && (cardCheckEpochByQuestion.get(questionId) ?? 0) !== checkEpochAtStart) return;
 
 const response = await sendOpenQBankRequest<{
     queued?: boolean;
@@ -2416,15 +2201,11 @@ const response = await sendOpenQBankRequest<{
     true,
 );
 
-// A user-initiated generation may have started while this background check was in flight.
 if (inlineActionState.questionId !== questionId || activeCardPolls.has(questionId)) return;
-if (isOpenQbankCore && (cardCheckEpochByQuestion.get(questionId) ?? 0) !== checkEpochAtStart) return;
 if (inlineActionState.generatedCardsText && inlineActionState.cardsDoneQuestionId === questionId) return;
 
 const cachedCards = response?.cards;
-const applyCachedPreview = isOpenQbankCore
-    ? shouldApplyOpenQbankCachedPreview(Boolean(response?.already_cached), cachedCards)
-    : shouldApplyOpenQbankCachedPreview(Boolean(response?.already_cached), cachedCards);
+const applyCachedPreview = shouldApplyOpenQbankCachedPreview(Boolean(response?.already_cached), cachedCards);
 
 if (applyCachedPreview && cachedCards) {
     inlineActionState.generatedCardsText = cachedCards;
@@ -2441,10 +2222,6 @@ if (applyCachedPreview && cachedCards) {
 } else if (response?.queued && response.job_id) {
     inlineActionState.showPreview = false;
     inlineActionState.cardsPending = true;
-    inlineActionState.countdownProgress = 0;
-    inlineActionState.countdownStartedAt = Date.now();
-    const queuedLabel = 'Generating...';
-    startCardsProgressTicker(queuedLabel, false);
     renderInlineActions();
     void pollCardGeneration(questionId, questionData);
 }
@@ -2462,111 +2239,6 @@ if (
 }
 console.error('Failed to check existing cards:', e);
 }
-};
-
-const handleInlineGenerateCards = async () => {
-    if (
-        !inlineActionState.questionId
-        || inlineActionState.cardsPending
-        || activeCardPolls.has(inlineActionState.questionId)
-    ) return;
-
-    // Refresh entitlement before serving/generating content.
-    await refreshCustomAnkiAccess();
-
-    if (
-        isOpenQbankFree(inlineActionState.userType, inlineActionState.userTier)
-        || inlineActionState.aiFlashcardsEnabled === false
-    ) {
-        renderInlineActions();
-        return;
-    }
-
-    if (inlineActionState.upgradeRequired) {
-        showUpdateRequiredModal(inlineActionState.minVersion, inlineActionState.upgradeUrl);
-        return;
-    }
-
-    const isOpenQbankCore = isOpenQbankCoreUser();
-
-    // Non-core tiers may use in-memory cache; openQbank core uses session cache + API.
-    if (!isOpenQbankCore && !inlineActionState.generatedCardsText && inlineActionState.questionId) {
-        const localCards = await readGeneratedCardsLocally(inlineActionState.questionId);
-        if (localCards) {
-            inlineActionState.generatedCardsText = localCards;
-            inlineActionState.cardsDoneQuestionId = inlineActionState.questionId;
-            inlineActionState.flagDoneQuestionId = inlineActionState.questionId;
-        }
-    }
-
-    // Instant in-memory / local cache hit: if cards are already present, display immediately
-    if (inlineActionState.generatedCardsText) {
-        inlineActionState.showPreview = true;
-        inlineActionState.cardsPending = false;
-        inlineActionState.countdownProgress = 100;
-        setInlineStatus('Cards generated successfully.', 'success');
-        renderInlineActions();
-        return;
-    }
-
-    polledQuestionIds.delete(inlineActionState.questionId);
-    if (isOpenQbankCore) {
-        const qid = inlineActionState.questionId;
-        cardCheckEpochByQuestion.set(qid, (cardCheckEpochByQuestion.get(qid) ?? 0) + 1);
-    }
-
-    // Progress fills the inline button only — never open a loading modal.
-    inlineActionState.showPreview = false;
-    inlineActionState.cardsPending = true;
-    inlineActionState.countdownProgress = 0;
-    inlineActionState.countdownStartedAt = Date.now();
-    const pendingLabel = 'Generating...';
-    inlineActionState.countdownText = pendingLabel;
-    setInlineStatus('', 'idle');
-    startCardsProgressTicker(pendingLabel, false);
-    renderInlineActions();
-
-    try {
-        const questionData = await getQuestionContent();
-        if (!questionData?.questionId) {
-            throw new Error('No question found on this page.');
-        }
-
-        const resolvedObjective =
-            questionData.educationalObjective
-            || (questionData.platform === 'USMLEFighter' || questionData.platform === 'Brivona' ? questionData.explanation : '');
-        if (!resolvedObjective?.trim()) {
-            throw new Error('This question is not supported as it lacks an educational objective.');
-        }
-
-        const result = await requestGenerateCards(questionData.questionId, questionData);
-        if (result.already_cached && result.cards) {
-            await finishCountdownProgressBar();
-            applyGeneratedCards(questionData.questionId, result.cards, undefined, {
-                contentScope: result.content_scope ?? null,
-                lockedCount: result.locked_count ?? 0,
-                userOwned: result.user_owned ?? false,
-            });
-            return;
-        }
-
-        if (result.queued) {
-            await pollCardGeneration(questionData.questionId, questionData);
-        } else {
-            throw new Error(result.message || 'Failed to queue card generation.');
-        }
-    } catch (error) {
-        const rawMsg = error instanceof Error ? error.message : 'Failed to queue card generation.';
-        const message = rawMsg.includes('Authentication required') ? 'Please sign in to openQbank via extension popup.' : rawMsg;
-        setInlineStatus(message, 'error');
-        stopCardsProgressTicker();
-        inlineActionState.cardsPending = false;
-        inlineActionState.countdownProgress = null;
-        inlineActionState.countdownStartedAt = null;
-        inlineActionState.countdownText = null;
-    } finally {
-        renderInlineActions();
-    }
 };
 
 const handleInlineFlagQuestion = async () => {
@@ -2672,21 +2344,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             console.error('GET_QUESTION_FINGERPRINT failed:', error);
             sendResponse({ success: false, error: 'Failed to extract question fingerprint.' });
         }
-    }
-    if (request.action === 'RUN_GENERATE_CARDS') {
-        handleInlineGenerateCards()
-            .then(() => {
-                sendResponse({
-                    success: true,
-                    message: 'Queued — flashcards are being generated.',
-                });
-            })
-            .catch((error) => {
-                sendResponse({
-                    success: false,
-                    error: error instanceof Error ? error.message : 'Failed to queue card generation.',
-                });
-            });
     }
     if (request.action === 'RUN_GENERATE_NEW_QUESTION') {
         sendResponse({
