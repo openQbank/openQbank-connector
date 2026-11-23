@@ -104,6 +104,7 @@ const requestAddToLibrary = async (
 const requestReportCard = async (payload: {
     questionId: string;
     cardIndex: number;
+    submissionId: string;
     rating?: string;
     issues?: string[];
     comment?: string;
@@ -118,6 +119,7 @@ const requestReportCard = async (payload: {
         {
             question_id: payload.questionId.trim(),
             card_index: payload.cardIndex,
+            submission_id: payload.submissionId,
             card_ref: payload.card?.cardRef,
             revision: payload.card?.revision,
             question_data: buildQuestionDataPayload(await getQuestionContent()),
@@ -1075,19 +1077,24 @@ const openReportCardModal = (cardIndex: number, triggerBtn?: HTMLElement) => {
         }
     };
     const questionId = inlineActionState.questionId;
+    let submission: { feedback: string; id: string } | undefined;
     submitBtn?.addEventListener('click', () => {
-        if (!questionId || questionId !== inlineActionState.questionId) return;
+        if (submitBtn.disabled || !questionId || questionId !== inlineActionState.questionId) return;
         reportError.textContent = '';
         submitBtn.disabled = true;
         submitBtn.textContent = 'Submitting...';
 
         const comment = (modal?.querySelector<HTMLTextAreaElement>('#ocb-report-comments')?.value || '').trim();
+        const issues = Array.from(selectedIssues);
+        const feedback = JSON.stringify([currentRating, issues, comment]);
+        if (submission?.feedback !== feedback) submission = { feedback, id: crypto.randomUUID() };
         void requestReportCard({
             questionId,
+            submissionId: submission.id,
             cardIndex,
             card: targetCard,
             rating: currentRating,
-            issues: Array.from(selectedIssues),
+            issues,
             comment,
             cardFront: targetCard?.clozeText || targetCard?.front || '',
             cardBack: targetCard?.back || '',

@@ -48,6 +48,45 @@ export interface CustomCardFabOptions {
 const FAB_ROOT_ID = 'openchromebank-custom-card-root';
 const FAB_STYLE_ID = 'openchromebank-custom-card-style';
 
+const addFieldCopy = (field: HTMLInputElement | HTMLTextAreaElement | null, label: string) => {
+  if (!field) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'ocb-copy-field';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'ocb-field-copy';
+  button.title = label;
+  button.setAttribute('aria-label', label);
+  button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 4H6a2 2 0 0 0-2 2v10"/></svg>';
+  button.addEventListener('click', async () => {
+    if (!field.value.trim()) return;
+    const status = field.closest('.ocb-card-modal')?.querySelector<HTMLElement>('#ocb-status-message') ?? null;
+    try {
+      await navigator.clipboard.writeText(field.value);
+      button.title = 'Copied';
+      button.classList.add('ocb-field-copy-done');
+      window.setTimeout(() => {
+        button.title = label;
+        button.classList.remove('ocb-field-copy-done');
+      }, 1200);
+      showStatus(status, 'Copied to clipboard.', 'success');
+    } catch {
+      showStatus(status, 'Could not copy to clipboard.', 'error');
+    }
+  });
+  field.replaceWith(wrapper);
+  wrapper.append(field, button);
+};
+
+const setFabOpen = (button: HTMLElement | null, open: boolean) => {
+  if (!button) return;
+  const label = open ? 'Close flashcard editor' : 'Custom Flashcard';
+  button.classList.toggle('ocb-fab-active', open);
+  button.setAttribute('aria-expanded', String(open));
+  button.setAttribute('aria-label', label);
+  button.title = label;
+};
+
 type SequentialStepDraft = { label: string; value: string };
 
 const renderOcbSequentialSteps = (root: HTMLElement, steps: SequentialStepDraft[]) => {
@@ -58,7 +97,7 @@ const renderOcbSequentialSteps = (root: HTMLElement, steps: SequentialStepDraft[
   list.forEach((step, idx) => {
     const row = document.createElement('div');
     row.className = 'ocb-seq-row';
-    row.style.cssText = 'display:grid;grid-template-columns:1fr 1.4fr auto;gap:8px;margin-bottom:8px;align-items:start;';
+    row.style.cssText = 'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto;gap:8px;margin-bottom:8px;align-items:start;';
     const labelInput = document.createElement('input');
     labelInput.type = 'text';
     labelInput.className = 'ocb-input ocb-seq-label';
@@ -79,6 +118,8 @@ const renderOcbSequentialSteps = (root: HTMLElement, steps: SequentialStepDraft[
       renderOcbSequentialSteps(root, current.length ? current : [{ label: '', value: '' }]);
     };
     row.append(labelInput, valueTa, rm);
+    addFieldCopy(labelInput, `Copy step ${idx + 1} name`);
+    addFieldCopy(valueTa, `Copy step ${idx + 1} answer`);
     container.appendChild(row);
   });
 };
@@ -130,7 +171,7 @@ export const dismissCustomCardModal = () => {
 
   if (skipBtn) skipBtn.hidden = true;
   if (modal) modal.classList.remove('ocb-modal-open');
-  if (fabBtn) fabBtn.classList.remove('ocb-fab-active');
+  setFabOpen(fabBtn, false);
   if (statusMsg) statusMsg.style.display = 'none';
 };
 
@@ -538,6 +579,8 @@ const ensureCustomCardFab = (options: CustomCardFabOptions) => {
         class="ocb-fab"
         title="Custom Flashcard (openQbank)"
         aria-label="Custom Flashcard"
+        aria-expanded="false"
+        aria-controls="ocb-card-modal"
       >
         <svg class="ocb-fab-icon" viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -737,17 +780,11 @@ const ensureCustomCardFab = (options: CustomCardFabOptions) => {
 
         <!-- Modal Footer Actions -->
         <div class="ocb-modal-footer">
-          <div class="ocb-modal-footer-left">
-            <button type="button" id="ocb-btn-copy" class="ocb-btn ocb-btn-ghost">Copy for Anki</button>
-          </div>
-          <div class="ocb-modal-footer-right">
-            <button type="button" id="ocb-btn-cancel" class="ocb-btn ocb-btn-ghost">Cancel</button>
-            <button type="button" id="ocb-btn-skip" class="ocb-btn ocb-btn-ghost" hidden>Skip draft</button>
-            <button type="button" id="ocb-btn-submit" class="ocb-btn ocb-btn-primary">
-              <span id="ocb-submit-text">Create Flashcard</span>
-              <div id="ocb-submit-spinner" class="ocb-spinner" style="display: none;"></div>
-            </button>
-          </div>
+          <button type="button" id="ocb-btn-skip" class="ocb-btn ocb-btn-ghost" title="Move to the next draft without saving this card" hidden>Skip card</button>
+          <button type="button" id="ocb-btn-submit" class="ocb-btn ocb-btn-primary">
+            <span id="ocb-submit-text">Create Flashcard</span>
+            <div id="ocb-submit-spinner" class="ocb-spinner" style="display: none;"></div>
+          </button>
         </div>
       </div>
     `;
@@ -880,7 +917,6 @@ const applyCardTypeDom = (
 const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   const fabBtn = root.querySelector<HTMLButtonElement>('#ocb-fab-btn');
   const modal = root.querySelector<HTMLElement>('#ocb-card-modal');
-  const cancelBtn = root.querySelector<HTMLButtonElement>('#ocb-btn-cancel');
   const submitBtn = root.querySelector<HTMLButtonElement>('#ocb-btn-submit');
 
   const typeClozeBtn = root.querySelector<HTMLButtonElement>('#ocb-type-cloze');
@@ -901,6 +937,11 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   const subjectInput = root.querySelector<HTMLInputElement>('#ocb-input-subject');
   const topicInput = root.querySelector<HTMLInputElement>('#ocb-input-topic');
   const statusMsg = root.querySelector<HTMLElement>('#ocb-status-message');
+
+  addFieldCopy(frontInput, 'Copy card front');
+  addFieldCopy(backInput, 'Copy card back');
+  addFieldCopy(notesInput, 'Copy notes');
+  addFieldCopy(frontCaptionInput, 'Copy image prompt');
 
   // Switch between Cloze, Basic, and Image
   const setCardType = (type: 'cloze' | 'basic' | 'image' | 'sequential') => {
@@ -942,7 +983,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     if (currentModal) {
       if (isModalOpen) {
         currentModal.classList.add('ocb-modal-open');
-        currentFabBtn?.classList.add('ocb-fab-active');
+        setFabOpen(currentFabBtn, true);
         void autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
         syncMediaProState(root, options);
         if (currentCardType === 'image') {
@@ -960,21 +1001,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
 
   setCardTypeRef = setCardType;
 
-  const copyBtn = root.querySelector<HTMLButtonElement>('#ocb-btn-copy');
-  copyBtn?.addEventListener('click', async () => {
-    const front = (frontInput?.value || '').trim();
-    const back = (backInput?.value || '').trim();
-    const line = currentCardType === 'basic' ? `${front}\t${back}` : front;
-  try {
-      await navigator.clipboard.writeText(line);
-      showStatus(statusMsg, 'Copied. Paste into Anki (Basic: Front, Back; Cloze: Text).', 'success');
-    } catch {
-      showStatus(statusMsg, 'Could not copy to clipboard.', 'error');
-    }
-  });
-
   fabBtn?.addEventListener('click', () => toggleModal());
-  cancelBtn?.addEventListener('click', () => toggleModal(false));
 
   const dropzone = root.querySelector<HTMLElement>('#ocb-media-dropzone');
   const fileInput = root.querySelector<HTMLInputElement>('#ocb-media-file-input');
@@ -1474,7 +1501,7 @@ const injectFabStyles = () => {
       justify-content: center;
       cursor: pointer;
       padding: 0;
-      transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+      transition: transform 180ms ease, background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
     }
 
     .ocb-fab:hover {
@@ -1492,6 +1519,22 @@ const injectFabStyles = () => {
       transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform: rotate(0deg);
       transform-origin: center center;
+    }
+
+    .ocb-fab.ocb-fab-active {
+      background: var(--ocb-danger);
+      border-color: var(--ocb-danger);
+      color: #fff;
+    }
+
+    .ocb-fab-context-only:not(.ocb-fab-active) {
+      display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ocb-fab, .ocb-fab .ocb-fab-icon {
+        transition: none;
+      }
     }
 
     .ocb-fab.ocb-fab-active .ocb-fab-icon {
@@ -1865,6 +1908,49 @@ const injectFabStyles = () => {
       min-height: 54px;
     }
 
+    .ocb-copy-field {
+      position: relative;
+      min-width: 0;
+    }
+
+    .ocb-copy-field > :is(.ocb-input, .ocb-textarea) {
+      display: block;
+      padding-inline-end: 38px;
+    }
+
+    .ocb-field-copy {
+      position: absolute;
+      inset-inline-end: 4px;
+      bottom: 3px;
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      color: var(--ocb-text-secondary);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .ocb-copy-field:has(textarea) .ocb-field-copy {
+      inset-inline-end: 12px;
+    }
+
+    .ocb-copy-field > .ocb-textarea {
+      padding-inline-end: 46px;
+    }
+
+    .ocb-field-copy:hover, .ocb-field-copy-done {
+      color: var(--ocb-text);
+      background: var(--ocb-bg-surface-alt);
+    }
+
+    .ocb-field-copy:focus-visible {
+      outline: 2px solid var(--ocb-accent-blue-deep);
+    }
+
     .ocb-tags-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -2056,24 +2142,14 @@ const injectFabStyles = () => {
     /* Modal Footer */
     .ocb-modal-footer {
       display: flex;
+      flex-wrap: wrap;
+      flex-shrink: 0;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 8px;
       padding: 12px 18px;
       border-top: 1px solid #f3f4f6;
       background: #fafafa;
-    }
-
-    .ocb-modal-footer-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ocb-modal-footer-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     .ocb-btn {
@@ -2092,6 +2168,10 @@ const injectFabStyles = () => {
       gap: 6px;
       font-family: 'DM Sans', 'Inter', system-ui, -apple-system, sans-serif;
       transition: background 150ms ease, transform 120ms ease, opacity 150ms ease, border-color 150ms ease;
+    }
+
+    .ocb-btn[hidden] {
+      display: none;
     }
 
     .ocb-btn:disabled {
@@ -2228,13 +2308,11 @@ const openCustomCardModal = async (
   const subjectInput = root.querySelector<HTMLInputElement>('#ocb-input-subject');
   const topicInput = root.querySelector<HTMLInputElement>('#ocb-input-topic');
 
-  if (!options.getFingerprint() && fabBtn) {
-    fabBtn.style.display = 'none';
-  }
+  fabBtn?.classList.toggle('ocb-fab-context-only', !options.getFingerprint());
 
   const isPro = Boolean(options.getStatus().isPro);
   const skip = root.querySelector<HTMLButtonElement>('#ocb-btn-skip');
-  if (skip) skip.hidden = !reviewingDrafts;
+  if (skip) skip.hidden = !reviewingDrafts || pendingDrafts.length === 0;
   const resolvedCardType = prefill.cardType || 'cloze';
   applyCardTypeDom(root, resolvedCardType, isPro);
   setCardTypeRef?.(resolvedCardType);
@@ -2259,7 +2337,7 @@ const openCustomCardModal = async (
   // Open the modal if collapsed, or maintain open state
   if (modal) {
     modal.classList.add('ocb-modal-open');
-    fabBtn?.classList.add('ocb-fab-active');
+    setFabOpen(fabBtn, true);
     isModalOpen = true;
   }
 
