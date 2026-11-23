@@ -698,9 +698,12 @@ const ensureInlineActionStyles = () => {
       #${INLINE_ACTIONS_ROOT_ID} .ocb-tag-badge {
         font-size: 11px;
         font-weight: 600;
-        padding: 2px 6px;
+        padding: 0.25rem 0.625rem;
         border-radius: 4px;
-        text-transform: capitalize;
+        color: var(--ocb-text-secondary, #4b5563);
+        background: var(--ocb-surface-alt, #f3f4f6);
+        border: 1px solid var(--ocb-border, #e5e7eb);
+        overflow-wrap: anywhere;
         display: inline-block;
       }
       #${INLINE_ACTIONS_ROOT_ID} .vignette-breakdown {
@@ -734,14 +737,16 @@ const ensureInlineActionStyles = () => {
         align-items: center;
         justify-content: center;
         gap: 5px;
-        padding: 5px 12px;
+        min-height: 42px;
+        white-space: nowrap;
+        padding: 0 12px;
         font-size: 11.5px;
         font-weight: 700;
         font-family: inherit;
         border-radius: 12px;
         background-color: #ffe5b4;
         color: #1f2937;
-        border: 1px solid #fcd34d;
+        border: 1px solid rgba(0, 0, 0, 0.05);
         cursor: pointer !important;
         text-decoration: none;
         line-height: 1;
@@ -1760,9 +1765,9 @@ const renderInlineActions = () => {
                         ? c.tagsList
                         : splitStoredCardTags(c.tags);
 
-                    const rawTags = [c.organSystem, ...sourceTagItems]
+                    const rawTags = sourceTagItems.length ? sourceTagItems : [c.organSystem]
                         .map(t => t ? t.trim() : '')
-                        .filter(t => t && t.toLowerCase() !== 'general' && t.toLowerCase() !== 'cloze' && t.toLowerCase() !== 'basic');
+                        .filter(Boolean);
 
                     const uniqueTags: string[] = [];
                     rawTags.forEach(t => {
@@ -1771,7 +1776,7 @@ const renderInlineActions = () => {
                         }
                     });
 
-                    const tagsBadges = uniqueTags.map(tag => `<span class="ocb-tag-badge" style="${getTagStyles(tag)}">${tag}</span>`).join(' ');
+                    const tagsBadges = uniqueTags.map(tag => `<span class="ocb-tag-badge">${escapeTag(tag)}</span>`).join(' ');
                     const tagsStrip = tagsBadges ? `<div class="ocb-preview-card-tags" style="display: flex; gap: 4px; flex-wrap: wrap;">${tagsBadges}</div>` : '';
 
                     const answerFieldHtml = `
@@ -1814,7 +1819,7 @@ const renderInlineActions = () => {
                            </div>`;
 
                     const topHeaderMarkup = (tagsStrip || actionButtonsMarkup)
-                        ? `<div class="ocb-preview-card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                        ? `<div class="ocb-preview-card-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
                             ${tagsStrip || '<div></div>'}
                             ${actionButtonsMarkup}
                            </div>`
@@ -2028,7 +2033,7 @@ const parseCardsPayload = (text: string): ParsedCardsResult => {
                     const front = String(c.lead_in || c.leadIn || c.question || c.front || '').trim();
                     const back = String(c.answer || c.back || '').trim();
                     const notes = String(c.explanation || c.high_yield_pearl || c.notes || '').trim();
-                    const organSystem = String(c.organ_system || c.organSystem || 'General').trim();
+                    const organSystem = String(c.organ_system || c.organSystem || '').trim();
                     let tagsList: string[] | undefined;
                     let tags = '';
                     if (Array.isArray(c.tags)) {
@@ -2074,17 +2079,8 @@ const parseCardsPayload = (text: string): ParsedCardsResult => {
     return { cards: markdownCards };
 };
 
-const getTagStyles = (label: string): string => {
-    const text = label.trim().toLowerCase();
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-        hash = text.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const h = Math.abs(hash) % 360;
-    const hue = text === 'endocrinology' ? 330 : h;
-    const s = 70;
-    return `background: hsl(${hue}, ${s}%, 95%) !important; color: hsl(${hue}, ${s}%, 30%) !important; border: 1px solid hsl(${hue}, ${s}%, 85%) !important;`;
-};
+const escapeTag = (text: string): string => text
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 const formatCardText = (txt: string): string => {
     if (!txt) return '';

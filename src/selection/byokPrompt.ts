@@ -18,15 +18,15 @@ export type SelectionDraft = {
     steps?: { label: string; value: string }[];
 };
 
-export function toPrefill(card: SelectionDraft): CustomCardPrefill {
+export function toPrefill(card: SelectionDraft, taxonomy: Pick<SelectionDraft, 'organ_system' | 'subject' | 'topic'> = {}): CustomCardPrefill {
     return {
         cardType: card.card_type,
         front: card.front,
         back: card.back || '',
         notes: card.notes,
         steps: card.steps,
-        organSystem: card.organ_system,
-        subject: card.subject,
-        topic: card.topic,
+        organSystem: taxonomy.organ_system,
+        subject: taxonomy.subject,
+        topic: taxonomy.topic,
     };
 }

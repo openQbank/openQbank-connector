@@ -1066,7 +1066,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     const frontCaption = (frontCaptionInput?.value || '').trim();
     const back = (backInput?.value || '').trim();
     const notes = (notesInput?.value || '').trim();
-    const organSystem = systemSelect?.value || 'Multisystem Disorders';
+    const organSystem = systemSelect?.value || (reviewingDrafts ? '' : 'Multisystem Disorders');
     const subject = (subjectInput?.value || '').trim();
     const topic = (topicInput?.value || '').trim();
 
@@ -2094,8 +2094,9 @@ const openCustomCardModal = async (
   }
 
   // Always autodetect question metadata (subject, system, topic for UWorld, etc.)
-  await autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
+  if (!reviewingDrafts) await autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
 
+  if (reviewingDrafts && systemSelect) systemSelect.value = "";
   if (prefill.organSystem && systemSelect) {
     const existingOption = Array.from(systemSelect.options).find(
       (opt) => opt.value.toLowerCase() === prefill.organSystem!.toLowerCase()
@@ -2108,11 +2109,11 @@ const openCustomCardModal = async (
     }
     systemSelect.value = existingOption ? existingOption.value : prefill.organSystem;
   }
-  if (prefill.subject && subjectInput) {
-    subjectInput.value = prefill.subject;
+  if ((reviewingDrafts || prefill.subject) && subjectInput) {
+    subjectInput.value = prefill.subject || "";
   }
-  if (prefill.topic && topicInput) {
-    topicInput.value = prefill.topic;
+  if ((reviewingDrafts || prefill.topic) && topicInput) {
+    topicInput.value = prefill.topic || "";
   }
 
   syncMediaProState(root, options);

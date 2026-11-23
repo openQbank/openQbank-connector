@@ -2095,14 +2095,10 @@ export const buildQuestionDataPayload = (questionData?: QuestionData | null): In
     const educationalObjective =
         questionData.educationalObjective
         || (questionData.platform === 'USMLEFighter' || questionData.platform === 'Brivona' ? questionData.explanation : undefined);
-    const rawSys = (questionData.system || '').trim();
-    const isLoosenedPlatform = questionData.platform === 'UWorld' || questionData.platform === 'USMLEFighter' || questionData.platform === 'Brivona';
-    const finalSystem = isLoosenedPlatform && rawSys ? rawSys : resolveOrganSystem(questionData.system);
-
     return {
         platform: questionData.platform === 'Brivona' ? 'brivona' : questionData.platform,
         subject: questionData.subject,
-        system: finalSystem,
+        system: questionData.system?.trim() || '',
         topic: questionData.topic,
         topic_url: questionData.topicUrl,
         educational_objective: educationalObjective,

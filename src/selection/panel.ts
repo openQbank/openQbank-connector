@@ -268,9 +268,10 @@ export const openSelectionPanel = (selectionText: string): void => {
                 }, 100);
 
                 try {
+                    const question = buildQuestionDataPayload(await getQuestionContent());
+                    const taxonomy = { organ_system: question?.system || '', subject: question?.subject || '', topic: question?.topic || '' };
                     if (isPro) {
                         const fp = getQuestionFingerprint();
-                        const qData = await getQuestionContent();
                         const data = await sendOpenQBankRequest<{
                             success?: boolean;
                             cards?: SelectionDraft[];
@@ -283,7 +284,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                                 grounding,
                                 question_id: fp?.questionId,
                                 platform: fp?.platform || 'Web',
-                                question_data: buildQuestionDataPayload(qData),
+                                question_data: question,
                             },
                             true,
                             'POST',
@@ -298,7 +299,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                         genBtn.style.setProperty('--ocb-progress', '100%');
                         close();
                         const opts = fabOptions ?? buildFabOptions(status);
-                        await openCustomCardDrafts(opts, data.cards.map(toPrefill));
+                        await openCustomCardDrafts(opts, data.cards.map(card => toPrefill(card, taxonomy)));
                         return;
                     }
                     if (!hasByok) {
@@ -318,7 +319,7 @@ export const openSelectionPanel = (selectionText: string): void => {
                     stopTicker();
                     if (!host.isConnected) return;
                     close();
-                    await openCustomCardDrafts(fabOptions ?? buildFabOptions(status), byok.cards.map(toPrefill));
+                    await openCustomCardDrafts(fabOptions ?? buildFabOptions(status), byok.cards.map(card => toPrefill(card, taxonomy)));
                 } catch (err) {
                     resetBtn(err instanceof Error ? err.message : 'Request failed.');
                 }
