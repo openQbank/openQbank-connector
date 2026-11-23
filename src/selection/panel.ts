@@ -203,7 +203,7 @@ export const openSelectionPanel = (selectionText: string): void => {
     };
 
     const onKey = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') close();
+        if (e.key === 'Escape' || e.key === 'Esc' || e.code === 'Escape' || e.keyCode === 27) close();
     };
     window.addEventListener('keydown', onKey, true);
 

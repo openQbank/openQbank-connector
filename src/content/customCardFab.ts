@@ -94,7 +94,20 @@ const collectOcbSequentialSteps = (root: HTMLElement): SequentialStepDraft[] => 
   return steps;
 };
 
+export interface CustomCardPrefill {
+  cardType: 'basic' | 'cloze' | 'image' | 'sequential';
+  front: string;
+  back: string;
+  notes?: string;
+  organSystem?: string;
+  subject?: string;
+  topic?: string;
+  steps?: { label: string; value: string }[];
+}
+
 let isModalOpen = false;
+let pendingDrafts: CustomCardPrefill[] = [];
+let reviewingDrafts = false;
 let currentCardType: 'cloze' | 'basic' | 'image' | 'sequential' = 'cloze';
 let isSubmitting = false;
 let setCardTypeRef: ((type: 'cloze' | 'basic' | 'image' | 'sequential') => void) | null = null;
@@ -102,6 +115,63 @@ let lastQuestionId = '';
 let currentImageDataUrl: string | null = null;
 let currentFrontImageDataUrl: string | null = null;
 let keyboardShortcutsEnabled = true;
+let activeToggleModal: ((open?: boolean) => void) | null = null;
+let globalShortcutsRegistered = false;
+
+export const dismissCustomCardModal = () => {
+  pendingDrafts = [];
+  reviewingDrafts = false;
+  isModalOpen = false;
+
+  const modal = document.getElementById('ocb-card-modal');
+  const fabBtn = document.getElementById('ocb-fab-btn');
+  const skipBtn = document.getElementById('ocb-btn-skip') as HTMLButtonElement | null;
+  const statusMsg = document.getElementById('ocb-status-message');
+
+  if (skipBtn) skipBtn.hidden = true;
+  if (modal) modal.classList.remove('ocb-modal-open');
+  if (fabBtn) fabBtn.classList.remove('ocb-fab-active');
+  if (statusMsg) statusMsg.style.display = 'none';
+};
+
+export const isCustomCardModalOpen = (): boolean => {
+  const modal = document.getElementById('ocb-card-modal');
+  return Boolean(isModalOpen || modal?.classList.contains('ocb-modal-open'));
+};
+
+const isEscapeKey = (e: KeyboardEvent): boolean => {
+  return e.key === 'Escape' || e.key === 'Esc' || e.code === 'Escape' || e.keyCode === 27;
+};
+
+const ensureGlobalShortcuts = () => {
+  if (globalShortcutsRegistered) return;
+  globalShortcutsRegistered = true;
+
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (isEscapeKey(e) && isCustomCardModalOpen()) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      dismissCustomCardModal();
+      return;
+    }
+
+    if (!keyboardShortcutsEnabled) return;
+    if ((e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        (activeEl as HTMLElement).isContentEditable
+      );
+      if (!isInput && !isCustomCardModalOpen()) {
+        e.preventDefault();
+        activeToggleModal?.(true);
+      }
+    }
+  }, true);
+};
 
 if (typeof chrome !== 'undefined' && chrome.storage?.local) {
   chrome.storage.local.get(['keyboard_shortcuts_enabled'], (res) => {
@@ -426,6 +496,7 @@ export const updateCustomCardFabVisibility = (
 };
 
 const ensureCustomCardFab = (options: CustomCardFabOptions) => {
+  ensureGlobalShortcuts();
   if (typeof options.keyboardShortcutsEnabled === 'boolean') {
     keyboardShortcutsEnabled = options.keyboardShortcutsEnabled;
   }
@@ -855,17 +926,23 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   skipBtn?.addEventListener('click', nextDraft);
 
   const toggleModal = (open?: boolean) => {
+    if (open === false) {
+      dismissCustomCardModal();
+      return;
+    }
     const status = options.getStatus();
     if (!status.isOpenQbankUser) {
       removeCustomCardFab();
       return;
     }
-    const isOpenInDom = Boolean(modal?.classList.contains('ocb-modal-open'));
+    const currentModal = root.querySelector<HTMLElement>('#ocb-card-modal') || modal;
+    const currentFabBtn = root.querySelector<HTMLElement>('#ocb-fab-btn') || fabBtn;
+    const isOpenInDom = Boolean(currentModal?.classList.contains('ocb-modal-open'));
     isModalOpen = typeof open === 'boolean' ? open : !isOpenInDom;
-    if (modal) {
+    if (currentModal) {
       if (isModalOpen) {
-        modal.classList.add('ocb-modal-open');
-        fabBtn?.classList.add('ocb-fab-active');
+        currentModal.classList.add('ocb-modal-open');
+        currentFabBtn?.classList.add('ocb-fab-active');
         void autodetectQuestionMetadata(options, systemSelect, subjectInput, topicInput);
         syncMediaProState(root, options);
         if (currentCardType === 'image') {
@@ -874,15 +951,12 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
           setTimeout(() => frontInput?.focus(), 150);
         }
       } else {
-        pendingDrafts = [];
-        reviewingDrafts = false;
-        if (skipBtn) skipBtn.hidden = true;
-        modal.classList.remove('ocb-modal-open');
-        fabBtn?.classList.remove('ocb-fab-active');
-        if (statusMsg) statusMsg.style.display = 'none';
+        dismissCustomCardModal();
       }
     }
   };
+
+  activeToggleModal = toggleModal;
 
   setCardTypeRef = setCardType;
 
@@ -1123,9 +1197,17 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     }
   });
 
-  // Keyboard shortcuts:
-  // 1. Cmd + Enter (or Ctrl + Enter) submits the card if content is not empty
+  // Keyboard shortcuts on modal container:
+  // 1. Escape closes the manual creation popup immediately
+  // 2. Cmd + Enter (or Ctrl + Enter) submits the card if content is not empty
   modal?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (isEscapeKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      dismissCustomCardModal();
+      return;
+    }
     if (!keyboardShortcutsEnabled) return;
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       const front = (frontInput?.value || '').trim();
@@ -1134,34 +1216,6 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
         e.preventDefault();
         e.stopPropagation();
         submitBtn?.click();
-      }
-    }
-  });
-
-  // 2. Escape closes the manual creation popup if open
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isModalOpen) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      toggleModal(false);
-    }
-  }, true);
-
-  // 3. Pressing 'a' on page opens the manual card creation workflow (unless typing in an input)
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (!keyboardShortcutsEnabled) return;
-    if ((e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      const activeEl = document.activeElement;
-      const isInput = activeEl && (
-        activeEl.tagName === 'INPUT' ||
-        activeEl.tagName === 'TEXTAREA' ||
-        activeEl.tagName === 'SELECT' ||
-        (activeEl as HTMLElement).isContentEditable
-      );
-      if (!isInput && !isModalOpen) {
-        e.preventDefault();
-        toggleModal(true);
       }
     }
   }, true);
@@ -2148,20 +2202,6 @@ const injectFabStyles = () => {
 
   document.head.appendChild(style);
 };
-
-export interface CustomCardPrefill {
-  cardType: 'basic' | 'cloze' | 'image' | 'sequential';
-  front: string;
-  back: string;
-  notes?: string;
-  organSystem?: string;
-  subject?: string;
-  topic?: string;
-  steps?: { label: string; value: string }[];
-}
-
-let pendingDrafts: CustomCardPrefill[] = [];
-let reviewingDrafts = false;
 
 export async function openCustomCardDrafts(options: CustomCardFabOptions, drafts: CustomCardPrefill[]) {
   const [first, ...remaining] = drafts;
