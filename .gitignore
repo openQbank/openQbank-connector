@@ -48,3 +48,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated files and local signing credentials
+*.tsbuildinfo
+.wrangler/
+*.pem
+*.key
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+*.provisionprofile

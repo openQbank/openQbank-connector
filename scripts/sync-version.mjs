@@ -6,29 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
-const envPath = path.join(rootDir, '.env');
-
-const readDotenv = (filePath) => {
-  if (!fs.existsSync(filePath)) return {};
-
-  return Object.fromEntries(
-    fs.readFileSync(filePath, 'utf8')
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'))
-      .map((line) => {
-        const separator = line.indexOf('=');
-        if (separator < 0) return [line, ''];
-        return [line.slice(0, separator).trim(), line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '')];
-      }),
-  );
-};
-
-const env = { ...readDotenv(envPath), ...process.env };
-const version = String(env.VERSION || '').trim();
+const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+const version = String(process.env.VERSION || pkg.version || '').trim();
 
 if (!/^\d+\.\d+\.\d+$/.test(version)) {
-  console.error('VERSION must be set in .env as a semantic version, for example 13.3.1.');
+  console.error('The package or release VERSION must be a semantic version, for example 13.3.1.');
   process.exit(1);
 }
 
