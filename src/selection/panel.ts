@@ -236,7 +236,7 @@ export const openSelectionPanel = (selectionText: string): void => {
             if (!isPro && !hasByok) {
                 setStatus(
                     'AI card generation is part of openQbank Pro. '
-                    + '<a href="https://openqbank.com/settings" target="_blank" rel="noopener">Upgrade</a>.'
+                    + '<a href="https://app.openqbank.com/settings" target="_blank" rel="noopener">Upgrade</a>.'
                     + ' Developers: bring your own key under Settings → Advanced.',
                 );
             }

@@ -451,7 +451,7 @@ function PopupContent() {
               {loginStep === 'password' && (
                 <>
                   <a
-                    href="https://openqbank.com/forgot-password"
+                    href="https://app.openqbank.com/forgot-password"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-[#3b82f6] hover:underline dark:text-[#60a5fa]"

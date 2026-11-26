@@ -907,7 +907,7 @@ const applyCardTypeDom = (
     if (backGroup) backGroup.style.display = 'block';
     if (mediaLabelText) mediaLabelText.textContent = 'Explanation Media';
     if (!isPro) {
-      showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+      showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
     } else if (statusMsg && statusMsg.textContent?.includes('openQbank Pro feature')) {
       statusMsg.style.display = 'none';
     }
@@ -1010,7 +1010,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   // Bottom Media: Click or keyboard
   const handleDropzoneAction = () => {
     if (!options.getStatus().isPro) {
-      window.open('https://openqbank.com/settings', '_blank', 'noopener,noreferrer');
+      window.open('https://app.openqbank.com/settings', '_blank', 'noopener,noreferrer');
       return;
     }
     fileInput?.click();
@@ -1060,8 +1060,8 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     dropzone.classList.remove('ocb-media-dropzone-active');
 
     if (!options.getStatus().isPro) {
-      showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
-      window.open('https://openqbank.com/settings', '_blank', 'noopener,noreferrer');
+      showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
+      window.open('https://app.openqbank.com/settings', '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -1087,7 +1087,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
   // Front Image: Click or keyboard
   const handleFrontDropzoneAction = () => {
     if (!options.getStatus().isPro) {
-      window.open('https://openqbank.com/settings', '_blank', 'noopener,noreferrer');
+      window.open('https://app.openqbank.com/settings', '_blank', 'noopener,noreferrer');
       return;
     }
     frontFileInput?.click();
@@ -1137,8 +1137,8 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
     frontDropzone.classList.remove('ocb-media-dropzone-active');
 
     if (!options.getStatus().isPro) {
-      showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
-      window.open('https://openqbank.com/settings', '_blank', 'noopener,noreferrer');
+      showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
+      window.open('https://app.openqbank.com/settings', '_blank', 'noopener,noreferrer');
       return;
     }
 
@@ -1171,7 +1171,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
         if (item.kind === 'file' && item.type.startsWith('image/')) {
           e.preventDefault();
           if (!options.getStatus().isPro) {
-            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
             return;
           }
 
@@ -1204,7 +1204,7 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
         if (imgUrl) {
           e.preventDefault();
           if (!options.getStatus().isPro) {
-            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
+            showStatus(statusMsg, 'Image uploads are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
             return;
           }
           try {
@@ -1261,8 +1261,8 @@ const bindEvents = (root: HTMLElement, options: CustomCardFabOptions) => {
 
     if (currentCardType === 'image') {
       if (!options.getStatus().isPro) {
-        showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit openqbank.com/settings to upgrade.', 'error');
-        window.open('https://openqbank.com/settings', '_blank', 'noopener,noreferrer');
+        showStatus(statusMsg, 'Image flashcards are an openQbank Pro feature. Visit app.openqbank.com/settings to upgrade.', 'error');
+        window.open('https://app.openqbank.com/settings', '_blank', 'noopener,noreferrer');
         return;
       }
       if (!currentFrontImageDataUrl) {
